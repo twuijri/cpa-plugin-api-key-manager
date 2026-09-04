@@ -1,5 +1,13 @@
 # Verification
 
+## 0.1.0-alpha.6
+
+- New resource GET /v0/resource/plugins/miftah/models authenticates virtual keys and returns an OpenAI model list containing only their explicit allowed names, including named routes. It does not expand fallbacks or expose state.
+- Unit/race tests: valid list, invalid/native/missing/disabled/expired keys denied, no secret or backup leakage, no-store headers, no accounting entries, non-GET denied.
+- Real CPA v7.2.146 and Caddy v2.11.4 mock-upstream integration: rewritten GET /v1/models returns virtual allowlist; native list unchanged; missing/invalid/disabled virtual keys denied; prior chat/streaming/fallback tests pass.
+- Requires a Caddy rewrite for standard client discovery. No host-native per-key list hook exists in the inspected SDK. No live deployment or Hermes end-to-end test performed.
+- Hot-reload lock behavior was inspected, not changed. CPA restart is still needed for this plugin's updates.
+
 ## 0.1.0-alpha.5
 
 - Zero input/output prices accepted independently, negative prices rejected. Defaults are zero for new direct models and named routes; saved prices are retained.

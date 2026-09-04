@@ -1,0 +1,8 @@
+# Merge these four labels into cli-proxy-api.labels.
+# Keep the existing caddy hostname and caddy.reverse_proxy labels unchanged.
+# Requires Miftah >= 0.1.0-alpha.6. No credentials belong in this file.
+labels:
+  caddy.@miftah_models.method: GET
+  caddy.@miftah_models.path: /v1/models
+  caddy.@miftah_models.header_regexp: 'Authorization ^(?i:Bearer)[[:space:]]+mf_'
+  caddy.rewrite: '@miftah_models /v0/resource/plugins/miftah/models'

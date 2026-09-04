@@ -1,5 +1,31 @@
 # تثبيت النسخة التجريبية
 
+## اكتشاف الموديلات في هرمز والعملاء المشابهين (alpha.6)
+
+الإضافة توفّر قائمة OpenAI محمية بالمفتاح الافتراضي في:
+`/v0/resource/plugins/miftah/models`
+
+ترجع فقط أسماء الموديلات والمسارات المسموحة للمفتاح، لا البدائل الداخلية. لا تستعلم عن توفر الموديل أو حصته لدى المزوّد. المفتاح المعطّل أو المنتهي أو غير الصحيح يُرفض، ولا توجد بيانات إدارة في الرد.
+
+بروكسي CPA لا يتيح للإضافة استبدال قائمة `/v1/models` حسب المفتاح. لذلك، لتستخدم هرمز مع نفس العنوان `https://proxy.i3u.us/v1`، ادمج الأسطر التالية **داخل labels الحالية لخدمة cli-proxy-api** في Compose:
+
+```yaml
+caddy.@miftah_models.method: GET
+caddy.@miftah_models.path: /v1/models
+caddy.@miftah_models.header_regexp: 'Authorization ^(?i:Bearer)[[:space:]]+mf_'
+caddy.rewrite: '@miftah_models /v0/resource/plugins/miftah/models'
+```
+
+احتفظ بـ `caddy` و`caddy.reverse_proxy` كما هما. لا تستبدل باقي Compose. إذا عندك أصلًا `caddy.rewrite` أو مسارات مخصصة، ادمج القاعدة بعد مراجعة ترتيبها بدل الكتابة فوقها. ثبّت alpha.6 وأعد تشغيل CPA أولًا، ثم أعد نشر الخدمة لتطبيق labels (restart وحده لا يطبّق تغييرات labels).
+
+هذا تحويل داخلي وليس redirect؛ لا تُرسَل المفاتيح إلى جهة جديدة. يخص GET /v1/models مع Bearer mf_ فقط. المفاتيح الأصلية وطلبات المحادثة تبقى في مسارات CPA الأصلية. الاتصال المباشر بمنفذ CPA متجاوزًا Caddy لا يحصل على هذا التحويل، ويبقى GET /v1/models مرفوضًا للمفتاح الافتراضي. إذا أزيلت الإضافة، يفشل جلب القائمة بدل كشف القائمة العامة.
+
+اختُبرت القاعدة مع Caddy حقيقي وCPA محليين، وليس على خادم المستخدم. الملف `deploy/caddy-models.labels.yaml` يحتوي الجزء المطلوب فقط.
+
+### لماذا إعادة التشغيل عند تحديث الإضافة؟
+
+CPA يدعم استبدال الإضافة أثناء التشغيل، لكنه يحمّل الجديدة قبل إغلاق القديمة نهائيًا. مفتاح يحتفظ بقفل حصري على ملف البيانات حتى الإغلاق، فتتعذر تهيئة الثانية ويعود المضيف للقديمة. القفل يحمي من كاتبين متزامنين. هذا الإصدار لا يغيّر إدارة القفل؛ أعد تشغيل حاوية CPA بعد التحديث عند عدم وجود طلبات جارية. لا يلزم إعادة تشغيل خدمة Docker أو السيرفر كاملًا.
+
 هذه إضافة أصلية وليست إضافة متصفح. جرّبها على نسخة منفصلة من CPA أولًا؛ لا تستبدل إعدادات أو مفاتيح البروكسي الأساسي.
 
 ## التوافق
@@ -30,10 +56,10 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
 ```sh
 mkdir miftah-download
 cd miftah-download
-gh release download v0.1.0-alpha.5 --repo twuijri/cpa-plugin-miftah \
-  --pattern 'miftah_0.1.0-alpha.5_linux_amd64.zip' --pattern checksums.txt
+gh release download v0.1.0-alpha.6 --repo twuijri/cpa-plugin-miftah \
+  --pattern 'miftah_0.1.0-alpha.6_linux_amd64.zip' --pattern checksums.txt
 sha256sum -c checksums.txt
-unzip miftah_0.1.0-alpha.5_linux_amd64.zip
+unzip miftah_0.1.0-alpha.6_linux_amd64.zip
 ```
 
 لا ترسل توكن GitHub أو مفتاح إدارة CPA في المحادثات أو تحفظهما في هذا المستودع.

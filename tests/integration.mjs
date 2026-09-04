@@ -9,7 +9,7 @@ import http from 'node:http';
 const binary=process.env.CPA_TEST_BINARY;
 if(!binary)throw Error('Set CPA_TEST_BINARY to the CPA v7.2.146 binary');
 const work=await mkdtemp(join(tmpdir(),'miftah-integration-'));
-let calls=[];
+let calls=[];let gateway;let gatewayBase;
 const upstream=http.createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;let v=JSON.parse(body||'{}');calls.push(v.model);assert(!String(req.headers.authorization).includes('mf_'));
  if((v.model==='primary'||v.model==='direct-primary'||v.model==='key-primary')){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"message":"test unavailable"}}');return}
  if(v.stream){res.writeHead(200,{'Content-Type':'text/event-stream'});res.write('data: '+JSON.stringify({id:'test',object:'chat.completion.chunk',model:v.model,choices:[{index:0,delta:{content:'hello'},finish_reason:null}]})+'\n\n');res.write('data: '+JSON.stringify({id:'test',object:'chat.completion.chunk',model:v.model,choices:[],usage:{prompt_tokens:3,completion_tokens:4,total_tokens:7}})+'\n\n');res.end('data: [DONE]\n\n');return}
@@ -58,11 +58,43 @@ try{
  assert(Array.isArray(files.files),'real host metadata shape changed');console.log('PASS management model metadata endpoint (API-key-only fixture may have no auth files)');
  let s=await admin('state');await admin('routes','PUT',{revision:s.revision,route:{alias:'work',targets:['primary','backup'],retry_statuses:[503],retry_unknown:true,input_price:1000000,output_price:1000000,max_output:1000}});
  const created=await admin('keys','POST',{name:'Integration key',owner:'test',models:['work'],limits:{total:1000000,rpm:30,concurrent:2}});
+
+ const modelList=async key=>fetch(base+'/v0/resource/plugins/miftah/models',{headers:{Authorization:'Bearer '+key}});
+ let list=await modelList(created.secret);assert.equal(list.status,200);assert.deepEqual((await list.json()).data.map(m=>m.id),['work']);assert.equal(list.headers.get('cache-control'),'no-store');
+ for(const key of ['','mf_invalid','native-test-master'])assert.equal((await modelList(key)).status,401);
+ if(process.env.CADDY_TEST_BINARY){
+  const listener=http.createServer();await new Promise(r=>listener.listen(0,'127.0.0.1',r));const edgePort=listener.address().port;await new Promise(r=>listener.close(r));
+  const caddyfile=join(work,'Caddyfile');
+  await writeFile(caddyfile,`{
+ admin off
+ auto_https off
+}
+http://127.0.0.1:${edgePort} {
+ @miftah_models {
+  method GET
+  path /v1/models
+  header_regexp Authorization ^(?i:Bearer)[[:space:]]+mf_
+ }
+ rewrite @miftah_models /v0/resource/plugins/miftah/models
+ reverse_proxy 127.0.0.1:${port}
+}
+`);
+  gateway=spawn(process.env.CADDY_TEST_BINARY,['run','--config',caddyfile,'--adapter','caddyfile'],{stdio:'ignore'});
+  gatewayBase='http://127.0.0.1:'+edgePort;
+  let edgeReady=false;for(let i=0;i<60;i++){try{await fetch(gatewayBase+'/healthz');edgeReady=true;break}catch{}await new Promise(r=>setTimeout(r,100))}assert(edgeReady,'Caddy not ready');
+  const edgeList=key=>fetch(gatewayBase+'/v1/models',{headers:{Authorization:'Bearer '+key}});
+  let lr=await edgeList(created.secret);assert.equal(lr.status,200);assert.deepEqual((await lr.json()).data.map(m=>m.id),['work']);
+  lr=await edgeList('native-test-master');assert.equal(lr.status,200);assert((await lr.json()).data.some(m=>m.id==='backup'));
+  assert.equal((await edgeList('mf_invalid')).status,401);
+  assert.equal((await fetch(gatewayBase+'/v1/models')).status,401);
+  console.log('PASS real Caddy rewrite: virtual allowlist only, native listing preserved, invalid/missing keys denied');
+ }
+ console.log('PASS authenticated plugin discovery resource');
  let res=await completion('native-test-master','backup');assert.equal(res.status,200,await res.text());console.log('PASS native key continues working');
  res=await completion(created.secret);let text=await res.text();assert.equal(res.status,200,text);assert(text.includes('hello'));assert(calls.includes('primary')&&calls.includes('backup'));console.log('PASS virtual key, real host callback and fallback');
  res=await completion(created.secret,'work',true);text=await res.text();assert.equal(res.status,200,text);assert(text.includes('hello')&&text.includes('[DONE]'));console.log('PASS streaming callback and completion');
  const before=calls.length;res=await completion(created.secret,'backup');assert(res.status>=400);await res.text();assert.equal(calls.length,before);console.log('PASS model allowlist denies direct upstream model');
- s=await admin('state');let k=s.keys[0];k.enabled=false;await admin('keys','PUT',{key:k,revision:s.revision});res=await completion(created.secret);assert(res.status>=400);await res.text();assert.equal(calls.length,before);console.log('PASS disabled virtual key denied');
+ s=await admin('state');let k=s.keys[0];k.enabled=false;await admin('keys','PUT',{key:k,revision:s.revision});res=await completion(created.secret);assert(res.status>=400);await res.text();assert.equal(calls.length,before);console.log('PASS disabled virtual key denied');assert.equal((await modelList(created.secret)).status,401);if(gatewayBase)assert.equal((await fetch(gatewayBase+'/v1/models',{headers:{Authorization:'Bearer '+created.secret}})).status,401);
  res=await completion('native-test-master','backup');assert.equal(res.status,200,await res.text());console.log('PASS native key unaffected after virtual disable');
  const direct=await admin('keys','POST',{name:'Direct model key',models:['direct-primary'],direct_policies:[{kind:'direct',alias:'direct-primary',targets:['direct-primary','backup'],retry_statuses:[503],retry_unknown:true,input_price:1000000,output_price:1000000,max_output:1000}],limits:{total:1000000}});
  const start=calls.length;res=await completion(direct.secret,'direct-primary');text=await res.text();assert.equal(res.status,200,text);assert.deepEqual(calls.slice(start),['direct-primary','backup']);console.log('PASS real model name with ordered fallback, no alias');
@@ -80,4 +112,4 @@ try{
  s=await admin('state');assert.deepEqual(s.routes.find(r=>r.alias==='key-primary').targets,['key-primary']);
  console.log('PASS independent per-key fallback, streaming, backup allowlist isolation and unchanged shared policy');
  console.log('Integration passed. State retained for inspection at '+work);
-}catch(e){console.error(logs);throw e}finally{child.kill('SIGTERM');upstream.close();}
+}catch(e){console.error(logs);throw e}finally{gateway?.kill('SIGTERM');child.kill('SIGTERM');upstream.close();}
