@@ -86,7 +86,7 @@ npm run test:ui
 
 ## الملكية والنشر
 
-الكود الجديد مخصص لصاحب المشروع. المستودع الخاص: https://github.com/twuijri/cpa-plugin-miftah . لا يوجد تسجيل في متجر عام. راجع [دليل التثبيت](INSTALL.md) لتنزيل الإصدار الخاص وتجربته. يمكن تغيير حقل المستودع عند بناء نسخة مخصصة عبر:
+الكود الجديد مخصص لصاحب المشروع. المستودع عام بموافقة صاحبه: https://github.com/twuijri/cpa-plugin-miftah . لا يوجد تسجيل في المتجر الرسمي. راجع [دليل التثبيت](INSTALL.md) لإضافة مصدر `registry.json` من الواجهة أو التنزيل اليدوي. يمكن تغيير حقل المستودع عند بناء نسخة مخصصة عبر:
 
 ```sh
 go build -buildmode=c-shared -ldflags '-X miftah.local/plugin/internal/bridge.Repository=YOUR_ACTUAL_REPOSITORY_URL' -o dist/miftah.so ./cmd/plugin
