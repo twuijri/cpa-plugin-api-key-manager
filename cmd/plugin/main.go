@@ -21,14 +21,11 @@ import (
 	"encoding/json"
 	"errors"
 	"miftah.local/plugin/internal/bridge"
-	"miftah.local/plugin/internal/core"
-	"sync"
 	"unsafe"
 )
 
 var host C.cliproxy_host_api
-var app *bridge.App
-var mu sync.Mutex
+var runtime = pluginRuntime{path: statePath, host: callback}
 
 func main() {}
 
@@ -100,44 +97,7 @@ func miftahCall(method *C.char, data *C.uint8_t, n C.size_t, out *C.cliproxy_buf
 	}
 	m := C.GoString(method)
 	raw := C.GoBytes(unsafe.Pointer(data), C.int(n))
-	var value any
-	var err error
-	mu.Lock()
-	if m == "plugin.register" || m == "plugin.reconfigure" {
-		if app == nil {
-			path, pathErr := statePath()
-			if pathErr != nil {
-				mu.Unlock()
-				b, _ := json.Marshal(map[string]any{"ok": false, "error": map[string]string{"code": "state_path", "message": pathErr.Error()}})
-				out.ptr = C.CBytes(b)
-				out.len = C.size_t(len(b))
-				return 1
-			}
-			var s *core.Store
-			s, err = core.Open(path)
-			if err == nil {
-				app = &bridge.App{Store: s, Host: callback}
-			}
-		}
-		value = bridge.Registration()
-		if app != nil {
-			app.Resume()
-		}
-	}
-	current := app
-	mu.Unlock()
-	if m != "plugin.register" && m != "plugin.reconfigure" {
-		if m == "plugin.quiesce" || m == "plugin.shutdown" {
-			if current != nil {
-				current.Quiesce()
-			}
-			value = map[string]bool{"ok": true}
-		} else if current == nil {
-			err = errors.New("plugin not initialized")
-		} else {
-			value, err = current.Handle(m, raw)
-		}
-	}
+	value, err := runtime.dispatch(m, raw)
 	env := map[string]any{"ok": err == nil}
 	if err == nil {
 		env["result"] = value
@@ -162,12 +122,5 @@ func miftahFree(p unsafe.Pointer, n C.size_t) { C.free(p) }
 
 //export miftahShutdown
 func miftahShutdown() {
-	mu.Lock()
-	current := app
-	app = nil
-	mu.Unlock()
-	if current != nil {
-		current.Quiesce()
-		current.Store.Close()
-	}
+	_, _ = runtime.dispatch("plugin.shutdown", nil)
 }

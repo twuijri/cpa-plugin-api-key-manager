@@ -1,5 +1,15 @@
 # Verification
 
+## 0.1.0-alpha.8
+
+- Full Go race tests and vet passed. Runtime gate now covers all RPCs, including management/auth, while quiesce drains background stream workers before releasing the store lock.
+- Unit tests: second writer blocked, quiesced calls denied, delayed old-library shutdown cannot release new writer lock, rollback reloads newer persisted state, active execution completes before quiesce releases ownership.
+- Real unmodified CPA v7.2.146 process loaded alpha.8 and replaced it with an unpublished alpha.9-test fixture, preserving PID and exact idle state. Existing keys, discovery, chat and streaming worked afterward.
+- Invalid 0.2.0-test shared-library replacement exercised host rollback. The prior library resumed and served the same key without a process restart.
+- Run: `CPA_TEST_BINARY=... MIFTAH_RELOAD_TEST_BINARY=... node tests/integration.mjs`. Build the replacement fixture with `-ldflags '-X miftah.local/plugin/internal/bridge.Version=0.1.0-alpha.9-test'` outside dist.
+- This is not a zero-downtime guarantee: quiesce can end active streams; hosts with incompatible reload behavior may differ. User VPS not changed/tested by this release.
+- Bootstrap from alpha.7 or earlier still needs one restart because those old libraries retain the lock until shutdown.
+
 ## 0.1.0-alpha.7
 
 - `go test -race ./...` and `go vet ./...` passed.

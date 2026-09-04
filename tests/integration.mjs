@@ -1,7 +1,7 @@
 // Exercises the real .so through a locally built CPA, with a local mock upstream.
 // No user credentials, remote services, or production configuration are touched.
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,mkdir} from 'node:fs/promises';
+import {mkdtemp,writeFile,mkdir,copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import {spawn} from 'node:child_process';
@@ -9,6 +9,8 @@ import http from 'node:http';
 const binary=process.env.CPA_TEST_BINARY;
 if(!binary)throw Error('Set CPA_TEST_BINARY to the CPA v7.2.146 binary');
 const work=await mkdtemp(join(tmpdir(),'miftah-integration-'));
+const pluginDir=join(work,'plugins');await mkdir(pluginDir);
+await copyFile(resolve('dist/miftah.so'),join(pluginDir,'miftah-v0.1.0-alpha.8.so'));
 let calls=[];let gateway;let gatewayBase;
 const upstream=http.createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;let v=JSON.parse(body||'{}');calls.push(v.model);assert(!String(req.headers.authorization).includes('mf_'));
  if((v.model==='primary'||v.model==='direct-primary'||v.model==='key-primary')){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"message":"test unavailable"}}');return}
@@ -26,7 +28,7 @@ remote-management:
 api-keys: ["native-test-master"]
 plugins:
   enabled: true
-  dir: "${resolve('dist')}"
+  dir: "${pluginDir}"
   configs:
     miftah:
       enabled: true
@@ -121,5 +123,36 @@ http://127.0.0.1:${edgePort} {
  const deny=calls.length;res=await completion(kb.secret,'backup-two');await res.text();assert(res.status>=400);assert.equal(calls.length,deny);
  s=await admin('state');assert.deepEqual(s.routes.find(r=>r.alias==='key-primary').targets,['key-primary']);
  console.log('PASS independent per-key fallback, streaming, backup allowlist isolation and unchanged shared policy');
+ if(process.env.MIFTAH_RELOAD_TEST_BINARY){
+  const originalPID=child.pid;
+  const saved=await admin('state');
+  await copyFile(process.env.MIFTAH_RELOAD_TEST_BINARY,join(pluginDir,'miftah-v0.1.0-alpha.9-test.so'));
+  await writeFile(join(work,'config.yaml'),config+'\ndebug: true\n');
+  let replaced=false;
+  for(let i=0;i<100;i++){
+   const result=await fetch(base+'/v0/management/plugins',{headers:metadataHeaders});
+   const listing=await result.json();
+   if(listing.plugins?.some(p=>p.id==='miftah'&&p.metadata?.version==='0.1.0-alpha.9-test')){replaced=true;break}
+   await new Promise(r=>setTimeout(r,150));
+  }
+  assert(replaced,'replacement failed');assert.equal(child.exitCode,null);assert.equal(child.pid,originalPID);
+  assert.deepEqual(await admin('state'),saved,'state changed during idle replacement');
+  res=await completion(single.secret,'backup');assert.equal(res.status,200,await res.text());
+  res=await completion(kb.secret,'key-primary',true);text=await res.text();assert.equal(res.status,200,text);assert(text.includes('[DONE]'));
+  assert.equal((await nativeList(single.secret)).status,200);
+  console.log('PASS real host hot replacement: same process, preserved keys/state, completion and streaming');
+  // A failed replacement must re-register the previous library and reopen its store.
+  await writeFile(join(pluginDir,'miftah-v0.2.0-test.so'),'invalid shared library fixture');
+  await writeFile(join(work,'config.yaml'),config+'\ndebug: false\n');
+  let rolledBack=false;
+  for(let i=0;i<100;i++){
+   if(logs.includes('failed to load plugin miftah')&&logs.includes('0.2.0-test')){rolledBack=true;break}
+   await new Promise(r=>setTimeout(r,150));
+  }
+  assert(rolledBack,'failed replacement not exercised');
+  res=await completion(single.secret,'backup');assert.equal(res.status,200,await res.text());
+  assert.equal(child.exitCode,null);assert.equal(child.pid,originalPID);
+  console.log('PASS failed replacement rollback resumes prior library without restart');
+ }
  console.log('Integration passed. State retained for inspection at '+work);
 }catch(e){console.error(logs);throw e}finally{gateway?.kill('SIGTERM');child.kill('SIGTERM');upstream.close();}
