@@ -59,6 +59,16 @@ try{
  let s=await admin('state');await admin('routes','PUT',{revision:s.revision,route:{alias:'work',targets:['primary','backup'],retry_statuses:[503],retry_unknown:true,input_price:1000000,output_price:1000000,max_output:1000}});
  const created=await admin('keys','POST',{name:'Integration key',owner:'test',models:['work'],limits:{total:1000000,rpm:30,concurrent:2}});
 
+ const nativeList=key=>fetch(base+'/v1/models',{headers:{Authorization:'Bearer '+key}});
+ const virtualCatalog=await nativeList(created.secret);assert.equal(virtualCatalog.status,200);
+ const nativeCatalog=await nativeList('native-test-master');assert.equal(nativeCatalog.status,200);
+ assert.deepEqual(await virtualCatalog.json(),await nativeCatalog.json());
+ for(const key of ['','mf_invalid'])assert.equal((await nativeList(key)).status,401);
+ const callsBeforeDiscovery=calls.length;
+ const deniedModel=await completion(created.secret,'backup');assert(deniedModel.status>=400);await deniedModel.text();
+ assert.equal(calls.length,callsBeforeDiscovery,'listing granted execution access');
+ console.log('PASS direct native model discovery; invalid keys and unauthorized execution denied');
+
  const modelList=async key=>fetch(base+'/v0/resource/plugins/miftah/models',{headers:{Authorization:'Bearer '+key}});
  let list=await modelList(created.secret);assert.equal(list.status,200);assert.deepEqual((await list.json()).data.map(m=>m.id),['work']);assert.equal(list.headers.get('cache-control'),'no-store');
  for(const key of ['','mf_invalid','native-test-master'])assert.equal((await modelList(key)).status,401);

@@ -1,5 +1,14 @@
 # Verification
 
+## 0.1.0-alpha.7
+
+- `go test -race ./...` and `go vet ./...` passed.
+- Real shared library loaded by unmodified local CPA v7.2.146: direct GET /v1/models with a valid virtual key returned 200 and matched the native-key catalog.
+- Missing/invalid keys rejected. Unit tests also reject disabled/expired keys and unrelated GET/POST endpoints.
+- Discovering an upstream model did not grant execution access; unauthorized execution made no upstream call.
+- Existing native-key, streaming, direct-model and per-key fallback integration tests passed.
+- Not yet verified on the user's VPS. Does not claim to fix the separately reported Hermes "Missing Authentication header" error or hot-reload locking.
+
 ## 0.1.0-alpha.6
 
 - New resource GET /v0/resource/plugins/miftah/models authenticates virtual keys and returns an OpenAI model list containing only their explicit allowed names, including named routes. It does not expand fallbacks or expose state.

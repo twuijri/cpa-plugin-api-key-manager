@@ -8,6 +8,47 @@ import (
 	"time"
 )
 
+func TestNativeDiscoveryAuthentication(t *testing.T) {
+	a, key := setup(t)
+	check := func(method, path, secret string, want bool) {
+		t.Helper()
+		raw, _ := json.Marshal(Request{Method: method, Path: path, Headers: http.Header{"Authorization": {"Bearer " + secret}}})
+		result, err := a.Handle("frontend_auth.authenticate", raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		encoded, _ := json.Marshal(result)
+		var response struct{ Authenticated bool }
+		if err := json.Unmarshal(encoded, &response); err != nil {
+			t.Fatal(err)
+		}
+		if response.Authenticated != want {
+			t.Fatalf("%s %s: got %v, want %v", method, path, response.Authenticated, want)
+		}
+	}
+	check("GET", "/v1/models", key, true)
+	for _, secret := range []string{"", "mf_invalid", "native-master"} {
+		check("GET", "/v1/models", secret, false)
+	}
+	for _, path := range []string{"/v0/management/config", "/v1/models/other", "/v1beta/models", "/v1/chat/completions"} {
+		check("GET", path, key, false)
+	}
+	check("POST", "/v1/models", key, false)
+	check("POST", "/v1/chat/completions", key, true)
+	k := a.Store.Snapshot().Keys[0]
+	k.Enabled = false
+	if err := a.Store.Update(k, a.Store.Snapshot().Revision); err != nil {
+		t.Fatal(err)
+	}
+	check("GET", "/v1/models", key, false)
+	k.Enabled = true
+	k.ExpiresAt = time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)
+	if err := a.Store.Update(k, a.Store.Snapshot().Revision); err != nil {
+		t.Fatal(err)
+	}
+	check("GET", "/v1/models", key, false)
+}
+
 func TestModelDiscoveryRestricted(t *testing.T) {
 	a, raw := setup(t)
 	req := Request{Method: "GET", Path: ModelsResourcePath, Headers: http.Header{"Authorization": {"Bearer " + raw}}}
