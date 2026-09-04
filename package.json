@@ -1,0 +1,6 @@
+{
+  "name": "miftah-development-tests",
+  "private": true,
+  "scripts": { "test:ui": "node tests/ui.mjs" },
+  "devDependencies": { "playwright": "1.62.1" }
+}

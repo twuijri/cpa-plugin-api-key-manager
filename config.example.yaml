@@ -1,0 +1,9 @@
+# Merge into a separate staging CPA configuration; do not replace existing api-keys.
+# MIFTAH_STATE_PATH is a host environment variable, not a config key.
+plugins:
+  enabled: true
+  dir: plugins
+  configs:
+    miftah:
+      enabled: true
+      priority: 100

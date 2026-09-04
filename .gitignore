@@ -1,0 +1,6 @@
+/data/
+/dist/
+*.so
+*.h
+/node_modules/
+/artifacts/
