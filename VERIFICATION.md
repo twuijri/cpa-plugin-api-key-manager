@@ -1,5 +1,13 @@
 # Verification
 
+## 0.1.0-alpha.3
+
+- Direct model selection with optional shared per-model fallback and pricing; named routes remain backward compatible.
+- Core tests: direct resolution, fixed primary, fallback does not grant direct access, mixed allowlists, persistence/reopen, atomic policy-plus-key changes, stale revision rejection, type collision and shared policy overwrite rejection.
+- Real CPA v7.2.146 with mock upstream: model metadata listing, direct model requests without aliases, ordered fallback, streaming, no-fallback requests, key disable, and all prior native-key and route tests.
+- Isolated Playwright: direct selection on empty state, mock model catalog, explicit pricing, fixed primary/backup ordering, optional aliases, mixed editing, manual IDs, mobile layout, and no local/session credential storage or external requests. Prior route drag/drop UI test also passes.
+- No live user deployment or real provider billing validation. Alpha limitations below remain in effect.
+
 ## 0.1.0-alpha.2
 
 - Default state moved to the standard home auth volume: `~/.cli-proxy-api/miftah/state.db` (JSON format, not a provider auth JSON file).

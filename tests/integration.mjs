@@ -11,7 +11,7 @@ if(!binary)throw Error('Set CPA_TEST_BINARY to the CPA v7.2.146 binary');
 const work=await mkdtemp(join(tmpdir(),'miftah-integration-'));
 let calls=[];
 const upstream=http.createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;let v=JSON.parse(body||'{}');calls.push(v.model);assert(!String(req.headers.authorization).includes('mf_'));
- if(v.model==='primary'){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"message":"test unavailable"}}');return}
+ if((v.model==='primary'||v.model==='direct-primary')){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"message":"test unavailable"}}');return}
  if(v.stream){res.writeHead(200,{'Content-Type':'text/event-stream'});res.write('data: '+JSON.stringify({id:'test',object:'chat.completion.chunk',model:v.model,choices:[{index:0,delta:{content:'hello'},finish_reason:null}]})+'\n\n');res.write('data: '+JSON.stringify({id:'test',object:'chat.completion.chunk',model:v.model,choices:[],usage:{prompt_tokens:3,completion_tokens:4,total_tokens:7}})+'\n\n');res.end('data: [DONE]\n\n');return}
  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({id:'test',object:'chat.completion',model:v.model,choices:[{index:0,message:{role:'assistant',content:'hello'},finish_reason:'stop'}],usage:{prompt_tokens:3,completion_tokens:4,total_tokens:7}}));});
 await new Promise(r=>upstream.listen(0,'127.0.0.1',r));
@@ -40,6 +40,7 @@ openai-compatibility:
     models:
       - name: primary
       - name: backup
+      - name: direct-primary
 `;
 await mkdir(join(work,'auth'));await writeFile(join(work,'config.yaml'),config);
 const child=spawn(binary,['-config',join(work,'config.yaml')],{cwd:work,env:{...process.env,MIFTAH_STATE_PATH:join(work,'state.json')}});let logs='';child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);
@@ -49,6 +50,10 @@ async function completion(key,model='work',stream=false){return fetch(base+'/v1/
 try{
  let ready=false;for(let i=0;i<80;i++){try{const r=await fetch(base+'/v0/management/miftah/state',{headers:{Authorization:'Bearer integration-admin-not-production'}});if(r.ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,150))};assert(ready,'CPA did not load plugin:\n'+logs);
  assert.equal((await fetch(base+'/v0/management/miftah/state')).status,401,'management route exposed');
+ const metadataHeaders={Authorization:'Bearer integration-admin-not-production'};
+ const files=await (await fetch(base+'/v0/management/auth-files',{headers:metadataHeaders})).json();
+ const catalog=new Set();for(const f of files.files||[]){const v=await (await fetch(base+'/v0/management/auth-files/models?name='+encodeURIComponent(f.name),{headers:metadataHeaders})).json();for(const m of v.models||[])catalog.add(m.id)}
+ assert(Array.isArray(files.files),'real host metadata shape changed');console.log('PASS management model metadata endpoint (API-key-only fixture may have no auth files)');
  let s=await admin('state');await admin('routes','PUT',{revision:s.revision,route:{alias:'work',targets:['primary','backup'],retry_statuses:[503],retry_unknown:true,input_price:1000000,output_price:1000000,max_output:1000}});
  const created=await admin('keys','POST',{name:'Integration key',owner:'test',models:['work'],limits:{total:1000000,rpm:30,concurrent:2}});
  let res=await completion('native-test-master','backup');assert.equal(res.status,200,await res.text());console.log('PASS native key continues working');
@@ -57,5 +62,12 @@ try{
  const before=calls.length;res=await completion(created.secret,'backup');assert(res.status>=400);await res.text();assert.equal(calls.length,before);console.log('PASS model allowlist denies direct upstream model');
  s=await admin('state');let k=s.keys[0];k.enabled=false;await admin('keys','PUT',{key:k,revision:s.revision});res=await completion(created.secret);assert(res.status>=400);await res.text();assert.equal(calls.length,before);console.log('PASS disabled virtual key denied');
  res=await completion('native-test-master','backup');assert.equal(res.status,200,await res.text());console.log('PASS native key unaffected after virtual disable');
+ const direct=await admin('keys','POST',{name:'Direct model key',models:['direct-primary'],direct_policies:[{kind:'direct',alias:'direct-primary',targets:['direct-primary','backup'],retry_statuses:[503],retry_unknown:true,input_price:1000000,output_price:1000000,max_output:1000}],limits:{total:1000000}});
+ const start=calls.length;res=await completion(direct.secret,'direct-primary');text=await res.text();assert.equal(res.status,200,text);assert.deepEqual(calls.slice(start),['direct-primary','backup']);console.log('PASS real model name with ordered fallback, no alias');
+ const deniedStart=calls.length;res=await completion(direct.secret,'backup');await res.text();assert(res.status>=400);assert.equal(calls.length,deniedStart);console.log('PASS fallback does not grant direct access to backup');
+ res=await completion(direct.secret,'direct-primary',true);text=await res.text();assert.equal(res.status,200,text);assert(text.includes('[DONE]'));console.log('PASS direct model streaming fallback');
+ const single=await admin('keys','POST',{name:'No fallback',models:['backup'],direct_policies:[{kind:'direct',alias:'backup',targets:['backup'],retry_statuses:[],input_price:1000000,output_price:1000000,max_output:1000}],limits:{total:1000000}});
+ const one=calls.length;res=await completion(single.secret,'backup');assert.equal(res.status,200,await res.text());assert.deepEqual(calls.slice(one),['backup']);console.log('PASS direct model without fallback');
+ s=await admin('state');const d=s.keys.find(k=>k.id===direct.key.id);d.enabled=false;await admin('keys','PUT',{key:d,revision:s.revision});res=await completion(direct.secret,'direct-primary');await res.text();assert(res.status>=400);res=await completion('native-test-master','backup');assert.equal(res.status,200,await res.text());console.log('PASS direct key disable preserves native access');
  console.log('Integration passed. State retained for inspection at '+work);
 }catch(e){console.error(logs);throw e}finally{child.kill('SIGTERM');upstream.close();}

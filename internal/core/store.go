@@ -39,6 +39,7 @@ type Key struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 type Route struct {
+	Kind          string   `json:"kind,omitempty"` // empty is a legacy named route; direct uses the actual model ID
 	Alias         string   `json:"alias"`
 	Targets       []string `json:"targets"`
 	RetryStatuses []int    `json:"retry_statuses"`
@@ -219,7 +220,7 @@ func validKey(k Key) error {
 		return errors.New("name required; names limited to 100 characters")
 	}
 	if len(k.Models) == 0 {
-		return errors.New("select at least one route")
+		return errors.New("select at least one model or route")
 	}
 	if k.ExpiresAt != "" {
 		if _, err := time.Parse(time.RFC3339, k.ExpiresAt); err != nil {
@@ -236,6 +237,9 @@ func logAudit(st *State, at time.Time, action, id string) {
 	st.Audit = append(st.Audit, Audit{at, action, id})
 }
 func (s *Store) Create(k Key) (Key, string, error) {
+	return s.CreateWithPolicies(k, nil)
+}
+func (s *Store) CreateWithPolicies(k Key, policies []Route) (Key, string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := validKey(k); err != nil {
@@ -256,6 +260,9 @@ func (s *Store) Create(k Key) (Key, string, error) {
 	k.CreatedAt = s.now()
 	k.Enabled = true
 	err = s.change(func(st *State) error {
+		if err := addDirectPolicies(st, k, policies, s.now()); err != nil {
+			return err
+		}
 		for _, m := range k.Models {
 			if _, ok := route(*st, m); !ok {
 				return errors.New("unknown route")
@@ -272,6 +279,9 @@ func (s *Store) Create(k Key) (Key, string, error) {
 	return k, raw, nil
 }
 func (s *Store) Update(k Key, revision int64) error {
+	return s.UpdateWithPolicies(k, revision, nil)
+}
+func (s *Store) UpdateWithPolicies(k Key, revision int64, policies []Route) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := validKey(k); err != nil {
@@ -280,6 +290,9 @@ func (s *Store) Update(k Key, revision int64) error {
 	return s.change(func(st *State) error {
 		if revision != st.Revision {
 			return ErrConflict
+		}
+		if err := addDirectPolicies(st, k, policies, s.now()); err != nil {
+			return err
 		}
 		for _, m := range k.Models {
 			if _, ok := route(*st, m); !ok {
@@ -325,20 +338,8 @@ func (s *Store) Rotate(id string) (string, error) {
 func (s *Store) PutRoute(r Route, rev int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if strings.TrimSpace(r.Alias) == "" || len(r.Alias) > 100 || len(r.Targets) == 0 || len(r.Targets) > 5 || r.InputPrice <= 0 || r.OutputPrice <= 0 || r.InputPrice > 1e9 || r.OutputPrice > 1e9 || r.MaxOutput < 1 || r.MaxOutput > 131072 {
-		return errors.New("route needs 1–5 targets, positive prices and output cap")
-	}
-	seen := map[string]bool{}
-	for _, v := range r.Targets {
-		if v == "" || len(v) > 200 || seen[v] {
-			return errors.New("invalid or duplicate target")
-		}
-		seen[v] = true
-	}
-	for _, n := range r.RetryStatuses {
-		if n != 429 && n != 502 && n != 503 && n != 504 {
-			return errors.New("retry only 429/502/503/504")
-		}
+	if err := validRoute(r); err != nil {
+		return err
 	}
 	return s.change(func(st *State) error {
 		if rev != st.Revision {
@@ -346,6 +347,9 @@ func (s *Store) PutRoute(r Route, rev int64) error {
 		}
 		for i := range st.Routes {
 			if st.Routes[i].Alias == r.Alias {
+				if (st.Routes[i].Kind == "direct") != (r.Kind == "direct") {
+					return errors.New("name already belongs to a different model/route type")
+				}
 				st.Routes[i] = r
 				logAudit(st, s.now(), "route.updated", r.Alias)
 				return nil
@@ -355,6 +359,60 @@ func (s *Store) PutRoute(r Route, rev int64) error {
 		logAudit(st, s.now(), "route.created", r.Alias)
 		return nil
 	})
+}
+func validRoute(r Route) error {
+	if r.Kind != "" && r.Kind != "route" && r.Kind != "direct" {
+		return errors.New("invalid policy kind")
+	}
+	if strings.TrimSpace(r.Alias) != r.Alias || r.Alias == "" || len(r.Alias) > 200 || len(r.Targets) == 0 || len(r.Targets) > 5 || r.InputPrice <= 0 || r.OutputPrice <= 0 || r.InputPrice > 1e9 || r.OutputPrice > 1e9 || r.MaxOutput < 1 || r.MaxOutput > 131072 {
+		return errors.New("route needs 1–5 targets, positive prices and output cap")
+	}
+	if r.Kind == "direct" && r.Targets[0] != r.Alias {
+		return errors.New("direct policy must start with requested model")
+	}
+	seen := map[string]bool{}
+	for _, v := range r.Targets {
+		if v == "" || strings.TrimSpace(v) != v || len(v) > 200 || seen[v] {
+			return errors.New("invalid or duplicate target")
+		}
+		seen[v] = true
+	}
+	for _, n := range r.RetryStatuses {
+		if n != 429 && n != 502 && n != 503 && n != 504 {
+			return errors.New("retry only 429/502/503/504")
+		}
+	}
+	return nil
+}
+
+// New policies and the key are committed atomically. This never overwrites shared pricing/fallback.
+func addDirectPolicies(st *State, k Key, policies []Route, now time.Time) error {
+	if len(policies) > 200 {
+		return errors.New("too many new models")
+	}
+	for _, p := range policies {
+		if p.Kind != "direct" {
+			return errors.New("only direct models can be added with a key")
+		}
+		if err := validRoute(p); err != nil {
+			return err
+		}
+		selected := false
+		for _, name := range k.Models {
+			if name == p.Alias {
+				selected = true
+			}
+		}
+		if !selected {
+			return errors.New("new policy must be selected by key")
+		}
+		if _, exists := route(*st, p.Alias); exists {
+			return ErrConflict
+		}
+		st.Routes = append(st.Routes, p)
+		logAudit(st, now, "model.created", p.Alias)
+	}
+	return nil
 }
 func route(st State, alias string) (Route, bool) {
 	for _, r := range st.Routes {

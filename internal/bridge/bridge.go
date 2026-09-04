@@ -121,7 +121,7 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 		for _, x := range [][2]string{{"GET", "state"}, {"POST", "keys"}, {"PUT", "keys"}, {"POST", "rotate"}, {"PUT", "routes"}} {
 			routes = append(routes, map[string]string{"Method": x[0], "Path": "miftah/" + x[1]})
 		}
-		resources := []map[string]string{{"Path": "/console", "Menu": "مفتاح · Miftah"}, {"Path": "/app.js"}, {"Path": "/style.css"}}
+		resources := []map[string]string{{"Path": "/console", "Menu": "مفتاح · Miftah"}, {"Path": "/app.js"}, {"Path": "/direct.js"}, {"Path": "/style.css"}}
 		return map[string]any{"Routes": routes, "Resources": resources}, nil
 	case "management.handle":
 		return a.Manage(r), nil
@@ -135,7 +135,7 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 var Repository = "https://github.com/twuijri/cpa-plugin-miftah"
 
 func Registration() any {
-	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "Miftah", "Version": "0.1.0-alpha.2", "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
+	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "Miftah", "Version": "0.1.0-alpha.3", "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
 }
 func reply(status int, v any) Response {
 	b, _ := json.Marshal(v)
@@ -168,21 +168,26 @@ func (a *App) Manage(r Request) Response {
 	case r.Method == "GET" && path == "state":
 		return reply(200, a.Store.Snapshot())
 	case r.Method == "POST" && path == "keys":
-		var k core.Key
-		if err = decode(r.Body, &k); err == nil {
+		var v struct {
+			core.Key
+			DirectPolicies []core.Route `json:"direct_policies"`
+		}
+		if err = decode(r.Body, &v); err == nil {
 			var secret string
-			k, secret, err = a.Store.Create(k)
+			var k core.Key
+			k, secret, err = a.Store.CreateWithPolicies(v.Key, v.DirectPolicies)
 			if err == nil {
 				return reply(201, map[string]any{"key": k, "secret": secret})
 			}
 		}
 	case r.Method == "PUT" && path == "keys":
 		var v struct {
-			Key      core.Key `json:"key"`
-			Revision int64    `json:"revision"`
+			Key            core.Key     `json:"key"`
+			Revision       int64        `json:"revision"`
+			DirectPolicies []core.Route `json:"direct_policies"`
 		}
 		if err = decode(r.Body, &v); err == nil {
-			err = a.Store.Update(v.Key, v.Revision)
+			err = a.Store.UpdateWithPolicies(v.Key, v.Revision, v.DirectPolicies)
 		}
 	case r.Method == "POST" && path == "rotate":
 		var v struct {

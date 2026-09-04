@@ -30,10 +30,10 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
 ```sh
 mkdir miftah-download
 cd miftah-download
-gh release download v0.1.0-alpha.2 --repo twuijri/cpa-plugin-miftah \
-  --pattern 'miftah_0.1.0-alpha.2_linux_amd64.zip' --pattern checksums.txt
+gh release download v0.1.0-alpha.3 --repo twuijri/cpa-plugin-miftah \
+  --pattern 'miftah_0.1.0-alpha.3_linux_amd64.zip' --pattern checksums.txt
 sha256sum -c checksums.txt
-unzip miftah_0.1.0-alpha.2_linux_amd64.zip
+unzip miftah_0.1.0-alpha.3_linux_amd64.zip
 ```
 
 لا ترسل توكن GitHub أو مفتاح إدارة CPA في المحادثات أو تحفظهما في هذا المستودع.
@@ -49,8 +49,8 @@ unzip miftah_0.1.0-alpha.2_linux_amd64.zip
 /v0/resource/plugins/miftah/console
 ```
 
-5. ادخل بمفتاح **إدارة** CPA، أنشئ مسارًا بموديل متاح فعلًا ثم مفتاحًا افتراضيًا. اختر أسعارًا تغطي أغلى بديل وحدودًا صغيرة للتجربة. المحاسبة تقديرية وليست سقف فاتورة مضمونًا.
-6. جرّب طلبًا نصيًا على `/v1/chat/completions` باسم المسار ومفتاح `mf_` وحد إخراج صريح مثل `max_tokens: 128`. اختبر أيضًا استمرار مفتاح CPA الأصلي، ورفض المفتاح الافتراضي بعد تعطيله.
+5. ادخل بمفتاح **إدارة** CPA ثم أنشئ مفتاحًا افتراضيًا واختر الموديلات مباشرة. للموديلات الجديدة أدخل أسعارًا تقديرية. من صفحة الموديلات المباشرة اضبط البدائل إن أردت، أو اترك الموديل دون بدائل. المسارات بأسماء مخصصة تبقى اختيارًا منفصلًا. اختر أسعارًا تغطي أغلى بديل وحدودًا صغيرة للتجربة. المحاسبة تقديرية وليست سقف فاتورة مضمونًا.
+6. جرّب طلبًا نصيًا على `/v1/chat/completions` باسم الموديل الحقيقي المسموح (أو المسار الاختياري) ومفتاح `mf_` وحد إخراج صريح مثل `max_tokens: 128`. اختبر أيضًا استمرار مفتاح CPA الأصلي، ورفض المفتاح الافتراضي بعد تعطيله.
 
 ## التراجع
 
