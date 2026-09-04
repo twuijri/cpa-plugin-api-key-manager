@@ -4,9 +4,9 @@
     {
       "id": "miftah",
       "name": "Miftah — مفتاح (Alpha)",
-      "description": "Authenticated native /v1/models discovery without custom CPA images or Caddy; returns global catalog while execution remains per-key restricted. Searchable models, ordered fallback, automatic CPA theme, optional routes and budgets. Preserves native CPA keys. STAGING ONLY: Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Restart CPA after update. Read INSTALL.md.",
+      "description": "Safe hot replacement with state-lock handover and rollback; one final restart required when upgrading from alpha.7 or older. Authenticated native /v1/models returns the global catalog; execution stays per-key restricted. Searchable models, fallback, theme, routes and budgets; native keys preserved. No Docker socket or custom image. STAGING ONLY: Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Read INSTALL.md.",
       "author": "Abdulaziz",
-      "version": "0.1.0-alpha.7",
+      "version": "0.1.0-alpha.8",
       "repository": "https://github.com/twuijri/cpa-plugin-miftah",
       "homepage": "https://github.com/twuijri/cpa-plugin-miftah/blob/main/INSTALL.md",
       "tags": ["Management", "Auth", "Usage", "Experimental"],
@@ -16,9 +16,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://github.com/twuijri/cpa-plugin-miftah/releases/download/v0.1.0-alpha.7/miftah_0.1.0-alpha.7_linux_amd64.zip",
-            "sha256": "f27a21cb867d173ee6effd8f311efb31f21b44caecb254ebbf61f8a5419656b2",
-            "size": 3888243
+            "url": "https://github.com/twuijri/cpa-plugin-miftah/releases/download/v0.1.0-alpha.8/miftah_0.1.0-alpha.8_linux_amd64.zip",
+            "sha256": "01d0a5ad67822c9cad81692beeefc6aa5acb406930da846c7b927acbce038619",
+            "size": 3888050
           }
         ]
       }
