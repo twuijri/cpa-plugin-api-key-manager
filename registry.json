@@ -6,7 +6,7 @@
       "name": "Miftah — مفتاح (Alpha)",
       "description": "Searchable model selection, per-key ordered fallback, automatic CPA theme, optional named routes and budgets. Preserves native CPA keys and existing routes. STAGING ONLY: Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Read INSTALL.md before installation.",
       "author": "Abdulaziz",
-      "version": "0.1.0-alpha.4",
+      "version": "0.1.0-alpha.5",
       "repository": "https://github.com/twuijri/cpa-plugin-miftah",
       "homepage": "https://github.com/twuijri/cpa-plugin-miftah/blob/main/INSTALL.md",
       "tags": ["Management", "Auth", "Usage", "Experimental"],
@@ -16,9 +16,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://github.com/twuijri/cpa-plugin-miftah/releases/download/v0.1.0-alpha.4/miftah_0.1.0-alpha.4_linux_amd64.zip",
-            "sha256": "56e8dd9bd1a70f5c2f62306cd09bc2de066ef680778a0384cd7646e7aafe1301",
-            "size": 3885847
+            "url": "https://github.com/twuijri/cpa-plugin-miftah/releases/download/v0.1.0-alpha.5/miftah_0.1.0-alpha.5_linux_amd64.zip",
+            "sha256": "4166629ceacb4bb30be0cd9419feb006a674beaf8d7634109db4e59c75a27db0",
+            "size": 3885926
           }
         ]
       }
