@@ -377,7 +377,7 @@ func validRoute(r Route) error {
 	if r.Kind != "" && r.Kind != "route" && r.Kind != "direct" {
 		return errors.New("invalid policy kind")
 	}
-	if strings.TrimSpace(r.Alias) != r.Alias || r.Alias == "" || len(r.Alias) > 200 || len(r.Targets) == 0 || len(r.Targets) > 5 || r.InputPrice <= 0 || r.OutputPrice <= 0 || r.InputPrice > 1e9 || r.OutputPrice > 1e9 || r.MaxOutput < 1 || r.MaxOutput > 131072 {
+	if strings.TrimSpace(r.Alias) != r.Alias || r.Alias == "" || len(r.Alias) > 200 || len(r.Targets) == 0 || len(r.Targets) > 5 || r.InputPrice < 0 || r.OutputPrice < 0 || r.InputPrice > 1e9 || r.OutputPrice > 1e9 || r.MaxOutput < 1 || r.MaxOutput > 131072 {
 		return errors.New("route needs 1–5 targets, positive prices and output cap")
 	}
 	if r.Kind == "direct" && r.Targets[0] != r.Alias {

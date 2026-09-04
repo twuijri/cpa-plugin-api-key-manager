@@ -17,7 +17,7 @@ const pickerHelp = document.createElement('div');
 pickerHelp.innerHTML = '<button id="loadModels" type="button" class="quiet">تحديث موديلات البروكسي</button><p id="catalogStatus" role="status"></p><label>إضافة اسم موديل غير ظاهر<div class="dialog-actions"><input id="manualModel" dir="ltr" maxlength="200" placeholder="اسم الموديل الحقيقي"><button id="addManualModel" type="button" class="quiet">إضافة</button></div></label>';
 $('keyModels').parentElement.after(pickerHelp);
 const newPrices = document.createElement('fieldset'); newPrices.id = 'newModelPrices'; newPrices.hidden = true;
-newPrices.innerHTML = '<legend>تسعير الموديلات الجديدة المختارة</legend><p>تطبّق هذه الأسعار التقديرية على الموديلات التي لم تُضبط بعد فقط. لا تغيّر أسعار أو بدائل الموديلات الموجودة. يمكنك تعديل كل موديل لاحقًا.</p><div class="form-grid"><label>مليون توكن إدخال ($)<input id="directInput" type="number" min="0.000001" max="1000" step="0.000001"></label><label>مليون توكن إخراج ($)<input id="directOutput" type="number" min="0.000001" max="1000" step="0.000001"></label><label>أقصى إخراج للطلب<input id="directCap" type="number" min="1" max="131072" value="4096"></label></div>';
+newPrices.innerHTML = '<legend>تسعير الموديلات الجديدة المختارة</legend><p>تطبّق هذه الأسعار التقديرية على الموديلات التي لم تُضبط بعد فقط. لا تغيّر أسعار أو بدائل الموديلات الموجودة. يمكنك تعديل كل موديل لاحقًا. الصفر يعني عدم احتساب تكلفة هذا النوع من التوكنات داخل مفتاح، وليس أن المزوّد مجاني.</p><div class="form-grid"><label>مليون توكن إدخال ($)<input id="directInput" type="number" min="0" max="1000" step="0.000001" value="0"></label><label>مليون توكن إخراج ($)<input id="directOutput" type="number" min="0" max="1000" step="0.000001" value="0"></label><label>أقصى إخراج للطلب<input id="directCap" type="number" min="1" max="131072" value="4096"></label></div>';
 pickerHelp.after(newPrices);
 const knownPolicy = name => state.routes.find(r => r.alias === name);
 function priceVisibility() {
@@ -103,7 +103,7 @@ function stylePolicyForm() {
  if (direct && first) first.remove(); // Primary stays fixed to the requested ID; only backups are reorderable.
  $('routeForm').querySelector('button[type="submit"]').textContent = direct ? 'حفظ إعداد الموديل' : 'حفظ المسار';
 }
-$('newModel').onclick = () => { originalRouteForm(); policyKind = 'direct'; stylePolicyForm(); $('inputPrice').value=''; $('outputPrice').value=''; };
+$('newModel').onclick = () => { originalRouteForm(); policyKind = 'direct'; stylePolicyForm(); $('inputPrice').value='0'; $('outputPrice').value='0'; };
 document.addEventListener('click', e => { const b = e.target.closest('[data-direct]'); if (b) routeForm(knownPolicy(b.dataset.direct)); });
 $('routeForm').onsubmit = e => { e.preventDefault(); guard(async () => {
  const alias = $('routeAlias').value.trim();

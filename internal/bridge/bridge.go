@@ -135,7 +135,7 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 var Repository = "https://github.com/twuijri/cpa-plugin-miftah"
 
 func Registration() any {
-	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "Miftah", "Version": "0.1.0-alpha.4", "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
+	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "Miftah", "Version": "0.1.0-alpha.5", "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
 }
 func reply(status int, v any) Response {
 	b, _ := json.Marshal(v)

@@ -1,5 +1,12 @@
 # Verification
 
+## 0.1.0-alpha.5
+
+- Zero input/output prices accepted independently, negative prices rejected. Defaults are zero for new direct models and named routes; saved prices are retained.
+- Core race tests and vet pass. New test verifies zero reservation/settlement cost with usage retained and RPM/concurrency limits still enforced.
+- Browser test passes creating a key/model and named route at zero, editing to nonzero and preserving it, and resetting new forms to zero.
+- Prior real CPA mock-upstream integration passes. No production server changes; provider charges are unaffected by these bookkeeping prices.
+
 ## 0.1.0-alpha.4
 
 - Searchable multi-select chips and ordered, draggable per-key fallback rows. New keys default to unlimited monetary/RPM/concurrency limits; saved limits are retained.
