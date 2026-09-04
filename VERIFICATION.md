@@ -1,4 +1,14 @@
-# Verification — 0.1.0-alpha.1
+# Verification
+
+## 0.1.0-alpha.2
+
+- Default state moved to the standard home auth volume: `~/.cli-proxy-api/miftah/state.db` (JSON format, not a provider auth JSON file).
+- New path tests pass: home resolution, persistent reopen, 0600 state permissions, explicit override, and fail-closed legacy-state detection.
+- `go test -race ./...` and `go vet ./...` passed; Linux amd64 shared library rebuilt with Go 1.27.1.
+- This change does not dynamically discover a custom CPA auth-dir. Existing overrides remain authoritative. See migration instructions before upgrading an installation with existing state.
+- Live user server was not modified or tested. Full host integration below was performed on alpha.1, not rerun for alpha.2.
+
+## 0.1.0-alpha.1
 
 Executed locally on 2026-09-04. No production server or user credentials used.
 

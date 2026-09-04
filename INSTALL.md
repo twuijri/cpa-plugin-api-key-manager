@@ -30,10 +30,10 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
 ```sh
 mkdir miftah-download
 cd miftah-download
-gh release download v0.1.0-alpha.1 --repo twuijri/cpa-plugin-miftah \
-  --pattern 'miftah_0.1.0-alpha.1_linux_amd64.zip' --pattern checksums.txt
+gh release download v0.1.0-alpha.2 --repo twuijri/cpa-plugin-miftah \
+  --pattern 'miftah_0.1.0-alpha.2_linux_amd64.zip' --pattern checksums.txt
 sha256sum -c checksums.txt
-unzip miftah_0.1.0-alpha.1_linux_amd64.zip
+unzip miftah_0.1.0-alpha.2_linux_amd64.zip
 ```
 
 لا ترسل توكن GitHub أو مفتاح إدارة CPA في المحادثات أو تحفظهما في هذا المستودع.
@@ -42,7 +42,7 @@ unzip miftah_0.1.0-alpha.1_linux_amd64.zip
 
 1. أوقف نسخة CPA التجريبية قبل نسخ الملف. انقل `miftah.so` إلى مجلد `plugins` الخاص بها. إن وُجد ملف سابق احتفظ بنسخة منه قبل استبداله.
 2. ادمج قسم `plugins` من `config.example.yaml` في إعداداتها. لا تستبدل ملف الإعدادات كاملًا ولا تعدّل `api-keys` الأصلية. لا تضف مفاتيح `mf_` إلى قائمة المفاتيح الأصلية.
-3. اضبط متغير البيئة `MIFTAH_STATE_PATH` إلى ملف حالة داخل مجلد مستمر وقابل للكتابة من مستخدم CPA فقط. في Docker اربط مجلد الحالة كاملًا، وليس الملف فقط، لأن الحفظ يستخدم استبدالًا ذريًا. مثال مسار داخل الحاوية: `/data/miftah/state.json`.
+3. في إصدار alpha.2 تحفظ البيانات افتراضيًا في `~/.cli-proxy-api/miftah/state.db`، وهو ملف JSON بامتداد مختلف حتى لا يعامل كحساب مزوّد. في حاوية root مع فوليوم الحسابات `/root/.cli-proxy-api` تكون البيانات دائمة دون فوليوم جديد أو متغير بيئة. هذا ليس اكتشافًا تلقائيًا لإعداد auth-dir المخصص؛ عند تغيير المسار أو مستخدم الحاوية اضبط `MIFTAH_STATE_PATH` إلى مجلد دائم مناسب. لا تعدّل ملفات حسابات CPA.
 4. شغّل CPA وتأكد من نجاح تحميل الإضافة في السجل. افتح المسار التالي على عنوان النسخة التجريبية:
 
 ```text
@@ -53,6 +53,12 @@ unzip miftah_0.1.0-alpha.1_linux_amd64.zip
 6. جرّب طلبًا نصيًا على `/v1/chat/completions` باسم المسار ومفتاح `mf_` وحد إخراج صريح مثل `max_tokens: 128`. اختبر أيضًا استمرار مفتاح CPA الأصلي، ورفض المفتاح الافتراضي بعد تعطيله.
 
 ## التراجع
+
+### الانتقال من alpha.1
+
+إذا استخدمت النسخة السابقة فعليًا، أوقف CPA وخذ نسخة احتياطية من ملف حالتها قبل التحديث. انقل الحالة القديمة إلى المسار الجديد أو احتفظ بالمسار القديم عبر `MIFTAH_STATE_PATH`. وجود `data/miftah/state.json` القديم يمنع بدء الإضافة دون اختيار صريح للمسار لتجنب فقد ظهور المفاتيح. أي متغير بيئة سابق له الأولوية؛ احذفه فقط بعد نقل البيانات والتحقق منها. لا تكتب فوق ملف حالة موجود. امتداد `.db` لا يغير صيغة البيانات.
+
+مع إعداد Docker الذي يحفظ `/root/.cli-proxy-api` أصلًا، أضف فقط الربط `cli-proxy-plugins:/CLIProxyAPI/plugins` وعرّف `cli-proxy-plugins:` في قسم volumes الرئيسي. انسخ ملفات الإضافات الحالية قبل إعادة إنشاء الحاوية حتى لا يخفي الربط الجديد ملفاتها. حافظ على فوليوم الحسابات الموجود كما هو.
 
 أوقف النسخة التجريبية، اضبط `plugins.configs.miftah.enabled` على `false` ثم أعد تشغيلها. احتفظ بملف الحالة للرجوع إليه. مفاتيح CPA الأصلية لم تعدّلها الإضافة؛ مفاتيحها الافتراضية لن تعمل بعد تعطيلها.
 

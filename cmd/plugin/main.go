@@ -22,7 +22,6 @@ import (
 	"errors"
 	"miftah.local/plugin/internal/bridge"
 	"miftah.local/plugin/internal/core"
-	"os"
 	"sync"
 	"unsafe"
 )
@@ -106,9 +105,13 @@ func miftahCall(method *C.char, data *C.uint8_t, n C.size_t, out *C.cliproxy_buf
 	mu.Lock()
 	if m == "plugin.register" || m == "plugin.reconfigure" {
 		if app == nil {
-			path := os.Getenv("MIFTAH_STATE_PATH")
-			if path == "" {
-				path = "data/miftah/state.json"
+			path, pathErr := statePath()
+			if pathErr != nil {
+				mu.Unlock()
+				b, _ := json.Marshal(map[string]any{"ok": false, "error": map[string]string{"code": "state_path", "message": pathErr.Error()}})
+				out.ptr = C.CBytes(b)
+				out.len = C.size_t(len(b))
+				return 1
 			}
 			var s *core.Store
 			s, err = core.Open(path)
