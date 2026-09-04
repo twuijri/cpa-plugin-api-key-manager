@@ -47,7 +47,7 @@ CPA يدعم استبدال الإضافة أثناء التشغيل. منذ alp
 أضف الرابط التالي ضمن `Third-party Plugin Sources` ثم احفظ:
 
 ```text
-https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
+https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/registry.json
 ```
 
 افتح `Plugin Store` ثم `Refresh` وابحث عن `Miftah`. المصدر عام ولا يحتاج قواعد مصادقة أو توكن GitHub.
@@ -62,10 +62,10 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
 ```sh
 mkdir miftah-download
 cd miftah-download
-gh release download v0.1.0 --repo twuijri/cpa-plugin-miftah \
-  --pattern 'miftah_0.1.0_linux_amd64.zip' --pattern checksums.txt
+gh release download v0.1.2 --repo twuijri/cpa-plugin-api-key-manager \
+  --pattern 'miftah_0.1.2_linux_amd64.zip' --pattern checksums.txt
 sha256sum -c checksums.txt
-unzip miftah_0.1.0_linux_amd64.zip
+unzip miftah_0.1.2_linux_amd64.zip
 ```
 
 لا ترسل توكن GitHub أو مفتاح إدارة CPA في المحادثات أو تحفظهما في هذا المستودع.
