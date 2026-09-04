@@ -1,5 +1,11 @@
 # Verification
 
+## 0.1.0
+
+- Removed Alpha branding and published a non-prerelease version at the owner's request; no new claim of certification or additional platform support.
+- Plugin ID and stored state are unchanged. Compatibility and accounting limits remain documented.
+- Full Go race tests/vet, shared-library build and real CPA v7.2.146 integration (including actual fallback billing in chat and stream) passed.
+
 ## 0.1.0-alpha.9
 
 - Full Go race tests and vet pass. Built linux/amd64 shared library. Real unmodified CPA v7.2.146 integration verifies custom fallback charges for both chat and streaming, unchanged shared prices, and all existing access/fallback tests.

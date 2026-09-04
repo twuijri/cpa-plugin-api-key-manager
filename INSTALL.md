@@ -51,7 +51,7 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
 ```
 
 افتح `Plugin Store` ثم `Refresh` وابحث عن `Miftah`. المصدر عام ولا يحتاج قواعد مصادقة أو توكن GitHub.
-يستخدم المصدر تنزيلًا مباشرًا لإصدار Alpha محدد مع بصمة SHA-256، وليس أحدث إصدار تلقائيًا.
+يستخدم المصدر تنزيلًا مباشرًا لإصدار محدد مع بصمة SHA-256، وليس أحدث إصدار تلقائيًا.
 لا يميز اختيار المنصة بين glibc وmusl؛ يجب فحص توافق الحاوية قبل التثبيت. تأكد كذلك من استمرار مجلد الإضافات وبيانات الحالة خارج دورة حياة الحاوية.
 إضافة المصدر لا تثبّت البرنامج؛ التثبيت خطوة منفصلة. راجع خطوات ربط الحالة والتجربة والتراجع أدناه.
 
@@ -62,10 +62,10 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-miftah/main/registry.json
 ```sh
 mkdir miftah-download
 cd miftah-download
-gh release download v0.1.0-alpha.6 --repo twuijri/cpa-plugin-miftah \
-  --pattern 'miftah_0.1.0-alpha.6_linux_amd64.zip' --pattern checksums.txt
+gh release download v0.1.0 --repo twuijri/cpa-plugin-miftah \
+  --pattern 'miftah_0.1.0_linux_amd64.zip' --pattern checksums.txt
 sha256sum -c checksums.txt
-unzip miftah_0.1.0-alpha.6_linux_amd64.zip
+unzip miftah_0.1.0_linux_amd64.zip
 ```
 
 لا ترسل توكن GitHub أو مفتاح إدارة CPA في المحادثات أو تحفظهما في هذا المستودع.
