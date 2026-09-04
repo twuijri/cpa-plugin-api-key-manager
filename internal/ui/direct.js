@@ -66,6 +66,7 @@ const suggestions = document.createElement('datalist'); suggestions.id = 'modelS
 function updateDatalist() { suggestions.innerHTML = [...catalog].sort().map(n => '<option value="' + esc(n) + '"></option>').join(''); }
 const originalKeyForm = keyForm;
 keyForm = function(k) {
+	initKeyPricing(k);
  // Reuse field initialization, but do not require an alias or an existing pricing policy.
  keyFallbackDraft = (k?.fallbacks || []).map(f=>({...f,fallbacks:[...(f.fallbacks||[])],retry_statuses:[...(f.retry_statuses||[])]}));
  originalKeyForm(k);
@@ -118,7 +119,7 @@ $('keyForm').onsubmit = e => { e.preventDefault(); guard(async () => {
  const limits = {};
  for (const n of ['Total','Daily','Weekly','Monthly']) limits[n.toLowerCase()] = Math.round(Number($('limit'+n).value)*1e6);
  limits.rpm = Number($('limitRPM').value); limits.concurrent = Number($('limitConcurrent').value);
- const k = {...(editing || {}), name:$('keyName').value, owner:$('keyOwner').value, enabled:$('keyEnabled').checked, models, fallbacks:keyFallbackDraft, limits, expires_at:$('keyExpiry').value ? new Date($('keyExpiry').value).toISOString() : ''};
+ const k = {...(editing || {}), ...keyPricingPayload(), name:$('keyName').value, owner:$('keyOwner').value, enabled:$('keyEnabled').checked, models, fallbacks:keyFallbackDraft, limits, expires_at:$('keyExpiry').value ? new Date($('keyExpiry').value).toISOString() : ''};
  if (editing) await api('keys','PUT',{key:k,revision:formRevision,direct_policies});
  else { const result = await api('keys','POST',{...k,direct_policies}); showSecret(result.secret); }
  $('keyDialog').close(); await refresh(); toast('تم حفظ المفتاح');

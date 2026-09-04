@@ -120,10 +120,10 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 		return nil, &RPCError{"unsupported", "endpoint not supported for virtual keys", 403}
 	case "management.register":
 		routes := []map[string]string{}
-		for _, x := range [][2]string{{"GET", "state"}, {"POST", "keys"}, {"PUT", "keys"}, {"POST", "rotate"}, {"PUT", "routes"}} {
+		for _, x := range [][2]string{{"GET", "state"}, {"GET", "prices"}, {"POST", "keys"}, {"PUT", "keys"}, {"POST", "rotate"}, {"PUT", "routes"}} {
 			routes = append(routes, map[string]string{"Method": x[0], "Path": "miftah/" + x[1]})
 		}
-		resources := []map[string]string{{"Path": "/models"}, {"Path": "/console", "Menu": "مفتاح · Miftah"}, {"Path": "/app.js"}, {"Path": "/direct.js"}, {"Path": "/picker.js"}, {"Path": "/theme.js"}, {"Path": "/style.css"}, {"Path": "/picker.css"}, {"Path": "/theme.css"}}
+		resources := []map[string]string{{"Path": "/models"}, {"Path": "/console", "Menu": "مفتاح · Miftah"}, {"Path": "/app.js"}, {"Path": "/direct.js"}, {"Path": "/pricing.js"}, {"Path": "/picker.js"}, {"Path": "/theme.js"}, {"Path": "/style.css"}, {"Path": "/picker.css"}, {"Path": "/theme.css"}}
 		return map[string]any{"Routes": routes, "Resources": resources}, nil
 	case "management.handle":
 		return a.Manage(r), nil
@@ -135,7 +135,7 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 // CPA requires a nonempty repository field even for private local builds.
 // Replace via -ldflags when the owner chooses an actual publication URL.
 var Repository = "https://github.com/twuijri/cpa-plugin-miftah"
-var Version = "0.1.0-alpha.8"
+var Version = "0.1.0-alpha.9"
 
 func Registration() any {
 	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "Miftah", "Version": Version, "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
@@ -171,6 +171,8 @@ func (a *App) Manage(r Request) Response {
 	path := strings.TrimPrefix(r.Path, "/v0/management/miftah/")
 	var err error
 	switch {
+	case r.Method == "GET" && path == "prices":
+		return referencePrices()
 	case r.Method == "GET" && path == "state":
 		return reply(200, a.Store.Snapshot())
 	case r.Method == "POST" && path == "keys":
@@ -242,18 +244,23 @@ func usage(b []byte) (int64, int64, bool) {
 	if resp, ok := v["response"]; ok {
 		return usage(resp)
 	}
-	var u map[string]int64
+	var u map[string]json.RawMessage
 	if json.Unmarshal(v["usage"], &u) != nil || u == nil {
 		return 0, 0, false
 	}
-	in, ok := u["input_tokens"]
-	if !ok {
-		in, ok = u["prompt_tokens"]
+	read := func(primary, alternate string) (int64, bool) {
+		raw, ok := u[primary]
+		if !ok {
+			raw, ok = u[alternate]
+		}
+		var value int64
+		if !ok || string(raw) == "null" || json.Unmarshal(raw, &value) != nil || value < 0 {
+			return 0, false
+		}
+		return value, true
 	}
-	out, ok2 := u["output_tokens"]
-	if !ok2 {
-		out, ok2 = u["completion_tokens"]
-	}
+	in, ok := read("input_tokens", "prompt_tokens")
+	out, ok2 := read("output_tokens", "completion_tokens")
 	return in, out, ok && ok2
 }
 func (a *App) execute(r Request, stream bool) (any, error) {
@@ -298,11 +305,21 @@ func (a *App) execute(r Request, stream bool) (any, error) {
 		selected = target
 		data["model"], _ = json.Marshal(target)
 		data["stream"], _ = json.Marshal(stream)
-		out, _ := json.Marshal(data)
 		format := r.SourceFormat
 		if format == "" {
 			format = r.Format
 		}
+		if stream && (format == "openai" || format == "chat-completions" || format == "") {
+			// Request authoritative usage even when the client omitted it.
+			options := map[string]json.RawMessage{}
+			_ = json.Unmarshal(data["stream_options"], &options)
+			if options == nil {
+				options = map[string]json.RawMessage{}
+			}
+			options["include_usage"] = json.RawMessage("true")
+			data["stream_options"], _ = json.Marshal(options)
+		}
+		out, _ := json.Marshal(data)
 		method := "host.model.execute"
 		if stream {
 			method = "host.model.execute_stream"
@@ -388,7 +405,15 @@ func (a *App) execute(r Request, stream bool) (any, error) {
 				_ = a.Host("host.stream.emit", map[string]string{"stream_id": r.StreamID, "error": "upstream stream interrupted"}, nil)
 				return
 			}
-			pending = append(pending, c.Payload...)
+			// Host callbacks may return a JSON event without SSE framing/newlines.
+			frame := bytes.TrimSpace(bytes.TrimPrefix(bytes.TrimSpace(c.Payload), []byte("data:")))
+			if len(pending) == 0 && json.Valid(frame) {
+				if x, y, ok := usage(frame); ok {
+					in, out, known = x, y, true
+				}
+			} else {
+				pending = append(pending, c.Payload...)
+			}
 			if len(pending) > 2<<20 {
 				pending = nil
 			}

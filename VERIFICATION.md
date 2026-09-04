@@ -1,5 +1,15 @@
 # Verification
 
+## 0.1.0-alpha.9
+
+- Full Go race tests and vet pass. Built linux/amd64 shared library. Real unmodified CPA v7.2.146 integration verifies custom fallback charges for both chat and streaming, unchanged shared prices, and all existing access/fallback tests.
+- Fixed usage parsing for nested token details and unframed JSON host stream events; previously these could retain an uncertain estimate despite available usage. Missing usage still retains an uncertain reservation rather than inventing token counts.
+- Live public reference fetch returned 2586 supported text-price rows, including an exact gpt-5.6-sol match; this is a point-in-time availability check, not a guarantee of current manufacturer billing.
+
+- Added per-key model prices with explicit zero, bounded validation, legacy compatibility and per-request price snapshots. Core tests cover isolation, persisted free overrides, fallback settlement, mid-request edits and budget enforcement.
+- Reference catalog uses a fixed public LiteLLM HTTPS URL, bounded response/time, no redirects and no user credentials or selections. Parser tests cover unit conversion, missing rates, negatives and non-text modes. Only exact IDs are imported; advanced billing tiers/cache/media are explicitly excluded.
+- Browser test: reference import, 50% markup, cancel, save/reopen and isolation from another key; zero-price regression also passes. Screenshot inspected.
+
 ## 0.1.0-alpha.8
 
 - Full Go race tests and vet passed. Runtime gate now covers all RPCs, including management/auth, while quiesce drains background stream workers before releasing the store lock.

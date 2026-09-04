@@ -123,6 +123,13 @@ http://127.0.0.1:${edgePort} {
  const deny=calls.length;res=await completion(kb.secret,'backup-two');await res.text();assert(res.status>=400);assert.equal(calls.length,deny);
  s=await admin('state');assert.deepEqual(s.routes.find(r=>r.alias==='key-primary').targets,['key-primary']);
  console.log('PASS independent per-key fallback, streaming, backup allowlist isolation and unchanged shared policy');
+ const premium=await admin('keys','POST',{name:'Custom prices',models:['key-primary'],pricing_mode:'models',prices:{backup:{input_price:2000000,output_price:3000000}},fallbacks:[{primary:'key-primary',fallbacks:['backup'],retry_statuses:[503],retry_unknown:true}]});
+ for(const streaming of [false,true]) {
+  res=await completion(premium.secret,'key-primary',streaming);text=await res.text();assert.equal(res.status,200,text);
+ }
+ s=await admin('state');const charges=s.entries.filter(e=>e.key_id===premium.key.id);assert.equal(charges.length,2);for(const e of charges){assert.equal(e.cost,18);assert.equal(e.model,'backup');assert.equal(e.status,'settled');}
+ assert.equal(s.routes.find(r=>r.alias==='backup').input_price,1000000);
+ console.log('PASS per-key prices charged on actual fallback in chat and stream; shared price unchanged');
  if(process.env.MIFTAH_RELOAD_TEST_BINARY){
   const originalPID=child.pid;
   const saved=await admin('state');

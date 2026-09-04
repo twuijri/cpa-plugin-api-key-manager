@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,17 +28,19 @@ type Limits struct {
 	Concurrent int   `json:"concurrent"`
 }
 type Key struct {
-	Fallbacks []KeyFallback `json:"fallbacks,omitempty"`
-	ID        string        `json:"id"`
-	Name      string        `json:"name"`
-	Owner     string        `json:"owner"`
-	Hash      string        `json:"hash,omitempty"`
-	Preview   string        `json:"preview"`
-	Enabled   bool          `json:"enabled"`
-	ExpiresAt string        `json:"expires_at"`
-	Models    []string      `json:"models"`
-	Limits    Limits        `json:"limits"`
-	CreatedAt time.Time     `json:"created_at"`
+	PricingMode string           `json:"pricing_mode,omitempty"`
+	Prices      map[string]Price `json:"prices,omitempty"`
+	Fallbacks   []KeyFallback    `json:"fallbacks,omitempty"`
+	ID          string           `json:"id"`
+	Name        string           `json:"name"`
+	Owner       string           `json:"owner"`
+	Hash        string           `json:"hash,omitempty"`
+	Preview     string           `json:"preview"`
+	Enabled     bool             `json:"enabled"`
+	ExpiresAt   string           `json:"expires_at"`
+	Models      []string         `json:"models"`
+	Limits      Limits           `json:"limits"`
+	CreatedAt   time.Time        `json:"created_at"`
 }
 type KeyFallback struct {
 	Primary       string   `json:"primary"`
@@ -56,16 +59,17 @@ type Route struct {
 	MaxOutput     int64    `json:"max_output"`
 }
 type Entry struct {
-	ID       string    `json:"id"`
-	KeyID    string    `json:"key_id"`
-	Alias    string    `json:"alias"`
-	Model    string    `json:"model"`
-	At       time.Time `json:"at"`
-	Cost     int64     `json:"cost"`
-	Input    int64     `json:"input"`
-	Output   int64     `json:"output"`
-	Status   string    `json:"status"`
-	Attempts int       `json:"attempts"`
+	Prices   map[string]Price `json:"prices,omitempty"`
+	ID       string           `json:"id"`
+	KeyID    string           `json:"key_id"`
+	Alias    string           `json:"alias"`
+	Model    string           `json:"model"`
+	At       time.Time        `json:"at"`
+	Cost     int64            `json:"cost"`
+	Input    int64            `json:"input"`
+	Output   int64            `json:"output"`
+	Status   string           `json:"status"`
+	Attempts int              `json:"attempts"`
 }
 type Audit struct {
 	At      time.Time `json:"at"`
@@ -223,6 +227,9 @@ func random(n int) (string, error) {
 }
 func digest(v string) string { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
 func validKey(k Key) error {
+	if err := validKeyPrices(k); err != nil {
+		return err
+	}
 	if strings.TrimSpace(k.Name) == "" || len(k.Name) > 100 || len(k.Owner) > 100 {
 		return errors.New("name required; names limited to 100 characters")
 	}
@@ -278,7 +285,9 @@ func (s *Store) CreateWithPolicies(k Key, policies []Route) (Key, string, error)
 				return errors.New("unknown route")
 			}
 		}
-		st.Keys = append(st.Keys, k)
+		stored := k
+		stored.Prices = maps.Clone(k.Prices)
+		st.Keys = append(st.Keys, stored)
 		logAudit(st, s.now(), "key.created", id)
 		return nil
 	})
@@ -317,7 +326,9 @@ func (s *Store) UpdateWithPolicies(k Key, revision int64, policies []Route) erro
 				k.Hash = old.Hash
 				k.Preview = old.Preview
 				k.CreatedAt = old.CreatedAt
-				st.Keys[i] = k
+				stored := k
+				stored.Prices = maps.Clone(k.Prices)
+				st.Keys[i] = stored
 				logAudit(st, s.now(), "key.updated", k.ID)
 				return nil
 			}
@@ -524,6 +535,18 @@ func (s *Store) Reserve(raw, alias string, bytes int, maxOutput int64) (Entry, R
 	if bytes < 1 || bytes > 4<<20 {
 		return Entry{}, Route{}, errors.New("request too large")
 	}
+	prices := reservationPrices(s.state, k, r)
+	// Reserve against the most expensive possible target, settle against the
+	// selected target using this immutable snapshot, even after a price edit.
+	r.InputPrice, r.OutputPrice = 0, 0
+	for _, p := range prices {
+		if p.InputPrice > r.InputPrice {
+			r.InputPrice = p.InputPrice
+		}
+		if p.OutputPrice > r.OutputPrice {
+			r.OutputPrice = p.OutputPrice
+		}
+	}
 	if maxOutput <= 0 || maxOutput > r.MaxOutput {
 		return Entry{}, Route{}, errors.New("explicit output cap required within route limit")
 	}
@@ -569,8 +592,13 @@ func (s *Store) Reserve(raw, alias string, bytes int, maxOutput int64) (Entry, R
 	if err != nil {
 		return Entry{}, Route{}, err
 	}
-	e := Entry{ID: id, KeyID: k.ID, Alias: alias, At: now, Cost: held, Status: "held"}
-	err = s.change(func(st *State) error { st.Entries = append(st.Entries, e); return nil })
+	e := Entry{ID: id, KeyID: k.ID, Alias: alias, At: now, Cost: held, Status: "held", Prices: prices}
+	err = s.change(func(st *State) error {
+		stored := e
+		stored.Prices = maps.Clone(e.Prices)
+		st.Entries = append(st.Entries, stored)
+		return nil
+	})
 	return e, r, err
 }
 func (s *Store) Finish(id, model string, in, out int64, known, success bool, attempts int, r Route) error {
@@ -588,6 +616,13 @@ func (s *Store) Finish(id, model string, in, out int64, known, success bool, att
 			e.Model = model
 			e.Attempts = attempts
 			if known && in >= 0 && out >= 0 && in <= 1e9 && out <= 1e9 {
+				if len(e.Prices) > 0 {
+					p, ok := e.Prices[model]
+					if !ok {
+						return errors.New("settlement model missing from price snapshot")
+					}
+					r.InputPrice, r.OutputPrice = p.InputPrice, p.OutputPrice
+				}
 				e.Input = in
 				e.Output = out
 				e.Cost = cost(in, out, r)
