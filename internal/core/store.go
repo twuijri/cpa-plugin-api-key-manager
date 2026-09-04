@@ -427,7 +427,7 @@ func (s *Store) SyncDirectModels(models []string, prices map[string]Price, rev i
 				}
 				continue
 			}
-			r := Route{Kind: "direct", Alias: model, Targets: []string{model}, MaxOutput: 4096}
+			r := Route{Kind: "direct", Alias: model, Targets: []string{model}, RetryStatuses: []int{}, MaxOutput: 4096}
 			if matched {
 				r.InputPrice, r.OutputPrice = price.InputPrice, price.OutputPrice
 			}

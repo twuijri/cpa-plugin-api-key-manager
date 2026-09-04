@@ -6,7 +6,7 @@
       "name": "API Key Manager — مفتاح",
       "description": "Arabic/English API key manager with host light/dark theme. Imports all proxy models and exact-match reference prices in one action; unmatched models safely remain zero. Per-key pricing and actual fallback accounting. No Docker socket or custom image. Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Accounting is estimated; back up state before updates. Read INSTALL.md.",
       "author": "Abdulaziz",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/INSTALL.md",
       "tags": ["Management", "Auth", "Usage"],
@@ -16,9 +16,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://github.com/twuijri/cpa-plugin-api-key-manager/releases/download/v0.1.4/miftah_0.1.4_linux_amd64.zip",
-            "sha256": "813b0e3f164f3088879eda73d620d76edbb64fd51ca32fb10e0d00f4fc71c6ee",
-            "size": 5526612
+            "url": "https://github.com/twuijri/cpa-plugin-api-key-manager/releases/download/v0.1.5/miftah_0.1.5_linux_amd64.zip",
+            "sha256": "3daa08515196794871ac50c8dcde3b475692c48d461cd07d2d547f60d93c6fca",
+            "size": 5529567
           }
         ]
       }

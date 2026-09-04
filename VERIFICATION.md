@@ -1,5 +1,12 @@
 # Verification
 
+## 0.1.5
+
+- Fixed the direct-model editor for automatically imported records whose empty retry-status list was serialized as `null`; existing affected state opens without migration, and new records persist an empty array.
+- Playwright now requires the pricing/fallback dialog to become visibly open after clicking both priced and unmatched imported models.
+- Race tests, vet, package build, and the CPA v7.2.146 mock-provider integration passed.
+- Release artifact SHA-256: `3daa08515196794871ac50c8dcde3b475692c48d461cd07d2d547f60d93c6fca`.
+
 ## 0.1.4
 
 - Added an atomic catalog sync that creates every model discovered from enabled proxy auth entries, applies exact-name public reference prices, preserves existing fallback/output configuration, and leaves unmatched new models at zero rather than guessing.

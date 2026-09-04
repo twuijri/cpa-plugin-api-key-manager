@@ -13,8 +13,9 @@ try{
  await page.locator('#syncPriceStatus').filter({hasText:'2 موديل'}).waitFor();
  assert.equal(await page.locator('[data-direct="priced/model"]').count(),1);assert.equal(await page.locator('[data-direct="unmatched/model"]').count(),1);
  await page.locator('[data-direct="priced/model"]').click();
+ await page.locator('#routeDialog').waitFor({state:'visible'});
  assert.equal(await page.locator('#inputPrice').inputValue(),'1.25');assert.equal(await page.locator('#outputPrice').inputValue(),'3.5');
- await page.locator('#routeDialog').evaluate(dialog=>dialog.close());await page.locator('[data-direct="unmatched/model"]').click();
+ await page.locator('#routeDialog').evaluate(dialog=>dialog.close());await page.locator('[data-direct="unmatched/model"]').click();await page.locator('#routeDialog').waitFor({state:'visible'});
  assert.equal(await page.locator('#inputPrice').inputValue(),'0');assert.equal(await page.locator('#outputPrice').inputValue(),'0');
  console.log('PASS full proxy catalog import, exact automatic pricing, safe zero for unmatched models');
 }finally{await browser.close()}
