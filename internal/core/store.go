@@ -27,16 +27,23 @@ type Limits struct {
 	Concurrent int   `json:"concurrent"`
 }
 type Key struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Owner     string    `json:"owner"`
-	Hash      string    `json:"hash,omitempty"`
-	Preview   string    `json:"preview"`
-	Enabled   bool      `json:"enabled"`
-	ExpiresAt string    `json:"expires_at"`
-	Models    []string  `json:"models"`
-	Limits    Limits    `json:"limits"`
-	CreatedAt time.Time `json:"created_at"`
+	Fallbacks []KeyFallback `json:"fallbacks,omitempty"`
+	ID        string        `json:"id"`
+	Name      string        `json:"name"`
+	Owner     string        `json:"owner"`
+	Hash      string        `json:"hash,omitempty"`
+	Preview   string        `json:"preview"`
+	Enabled   bool          `json:"enabled"`
+	ExpiresAt string        `json:"expires_at"`
+	Models    []string      `json:"models"`
+	Limits    Limits        `json:"limits"`
+	CreatedAt time.Time     `json:"created_at"`
+}
+type KeyFallback struct {
+	Primary       string   `json:"primary"`
+	Fallbacks     []string `json:"fallbacks"`
+	RetryStatuses []int    `json:"retry_statuses"`
+	RetryUnknown  bool     `json:"retry_unknown"`
 }
 type Route struct {
 	Kind          string   `json:"kind,omitempty"` // empty is a legacy named route; direct uses the actual model ID
@@ -263,6 +270,9 @@ func (s *Store) CreateWithPolicies(k Key, policies []Route) (Key, string, error)
 		if err := addDirectPolicies(st, k, policies, s.now()); err != nil {
 			return err
 		}
+		if err := validateKeyFallbacks(*st, k); err != nil {
+			return err
+		}
 		for _, m := range k.Models {
 			if _, ok := route(*st, m); !ok {
 				return errors.New("unknown route")
@@ -292,6 +302,9 @@ func (s *Store) UpdateWithPolicies(k Key, revision int64, policies []Route) erro
 			return ErrConflict
 		}
 		if err := addDirectPolicies(st, k, policies, s.now()); err != nil {
+			return err
+		}
+		if err := validateKeyFallbacks(*st, k); err != nil {
 			return err
 		}
 		for _, m := range k.Models {
@@ -403,6 +416,13 @@ func addDirectPolicies(st *State, k Key, policies []Route, now time.Time) error 
 				selected = true
 			}
 		}
+		for _, f := range k.Fallbacks {
+			for _, name := range f.Fallbacks {
+				if name == p.Alias {
+					selected = true
+				}
+			}
+		}
 		if !selected {
 			return errors.New("new policy must be selected by key")
 		}
@@ -479,6 +499,27 @@ func (s *Store) Reserve(raw, alias string, bytes int, maxOutput int64) (Entry, R
 	r, ok := route(s.state, alias)
 	if !ok {
 		return Entry{}, Route{}, errors.New("unknown route")
+	}
+	for _, f := range k.Fallbacks {
+		if f.Primary != alias {
+			continue
+		}
+		r.Targets = append([]string{alias}, f.Fallbacks...)
+		r.RetryStatuses = f.RetryStatuses
+		r.RetryUnknown = f.RetryUnknown
+		for _, target := range f.Fallbacks {
+			p, exists := route(s.state, target)
+			if !exists || p.Kind != "direct" {
+				return Entry{}, Route{}, errors.New("fallback pricing unavailable")
+			}
+			if p.InputPrice > r.InputPrice {
+				r.InputPrice = p.InputPrice
+			}
+			if p.OutputPrice > r.OutputPrice {
+				r.OutputPrice = p.OutputPrice
+			}
+		}
+		break
 	}
 	if bytes < 1 || bytes > 4<<20 {
 		return Entry{}, Route{}, errors.New("request too large")

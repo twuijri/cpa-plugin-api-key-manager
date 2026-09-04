@@ -1,5 +1,15 @@
 # Verification
 
+## 0.1.0-alpha.4
+
+- Searchable multi-select chips and ordered, draggable per-key fallback rows. New keys default to unlimited monetary/RPM/concurrency limits; saved limits are retained.
+- Core race tests and vet pass: per-key isolation, backup authorization denial, highest backup price reservation, empty override persistence, invalid policy atomic rollback, plus prior tests.
+- Real CPA v7.2.146 integration with mock upstream passes: independent per-key fallback including streaming, shared policy unchanged, native access preserved, plus prior routing/disable tests.
+- Playwright passes: search/checkbox/chips, actual backup drag/drop, create/edit persistence, unlimited defaults, old direct and named-route workflows, desktop/mobile.
+- Theme test reproduces CPA's same-origin iframe and data-theme contract: live dark/white/light switching overrides OS theme. Standalone system theme switching also passes. Screenshots inspected in light and dark modes.
+- Theme code only observes the parent's theme attribute; no host credentials or storage are read. Cross-origin embedding falls back to OS theme.
+- No production server changes or real provider tests. Per-request output caps remain required; periodic token quotas do not exist yet.
+
 ## 0.1.0-alpha.3
 
 - Direct model selection with optional shared per-model fallback and pricing; named routes remain backward compatible.

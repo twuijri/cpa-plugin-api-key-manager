@@ -11,7 +11,7 @@ if(!binary)throw Error('Set CPA_TEST_BINARY to the CPA v7.2.146 binary');
 const work=await mkdtemp(join(tmpdir(),'miftah-integration-'));
 let calls=[];
 const upstream=http.createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;let v=JSON.parse(body||'{}');calls.push(v.model);assert(!String(req.headers.authorization).includes('mf_'));
- if((v.model==='primary'||v.model==='direct-primary')){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"message":"test unavailable"}}');return}
+ if((v.model==='primary'||v.model==='direct-primary'||v.model==='key-primary')){res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"message":"test unavailable"}}');return}
  if(v.stream){res.writeHead(200,{'Content-Type':'text/event-stream'});res.write('data: '+JSON.stringify({id:'test',object:'chat.completion.chunk',model:v.model,choices:[{index:0,delta:{content:'hello'},finish_reason:null}]})+'\n\n');res.write('data: '+JSON.stringify({id:'test',object:'chat.completion.chunk',model:v.model,choices:[],usage:{prompt_tokens:3,completion_tokens:4,total_tokens:7}})+'\n\n');res.end('data: [DONE]\n\n');return}
  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({id:'test',object:'chat.completion',model:v.model,choices:[{index:0,message:{role:'assistant',content:'hello'},finish_reason:'stop'}],usage:{prompt_tokens:3,completion_tokens:4,total_tokens:7}}));});
 await new Promise(r=>upstream.listen(0,'127.0.0.1',r));
@@ -40,6 +40,8 @@ openai-compatibility:
     models:
       - name: primary
       - name: backup
+      - name: key-primary
+      - name: backup-two
       - name: direct-primary
 `;
 await mkdir(join(work,'auth'));await writeFile(join(work,'config.yaml'),config);
@@ -69,5 +71,13 @@ try{
  const single=await admin('keys','POST',{name:'No fallback',models:['backup'],direct_policies:[{kind:'direct',alias:'backup',targets:['backup'],retry_statuses:[],input_price:1000000,output_price:1000000,max_output:1000}],limits:{total:1000000}});
  const one=calls.length;res=await completion(single.secret,'backup');assert.equal(res.status,200,await res.text());assert.deepEqual(calls.slice(one),['backup']);console.log('PASS direct model without fallback');
  s=await admin('state');const d=s.keys.find(k=>k.id===direct.key.id);d.enabled=false;await admin('keys','PUT',{key:d,revision:s.revision});res=await completion(direct.secret,'direct-primary');await res.text();assert(res.status>=400);res=await completion('native-test-master','backup');assert.equal(res.status,200,await res.text());console.log('PASS direct key disable preserves native access');
+ const policy=alias=>({kind:'direct',alias,targets:[alias],retry_statuses:[],input_price:1000000,output_price:1000000,max_output:1000});
+ const ka=await admin('keys','POST',{name:'Per-key A',models:['key-primary'],fallbacks:[{primary:'key-primary',fallbacks:['backup'],retry_statuses:[503],retry_unknown:true}],direct_policies:[policy('key-primary')]});
+ const kb=await admin('keys','POST',{name:'Per-key B',models:['key-primary'],fallbacks:[{primary:'key-primary',fallbacks:['backup-two'],retry_statuses:[503],retry_unknown:true}],direct_policies:[policy('backup-two')]});
+ const aStart=calls.length;res=await completion(ka.secret,'key-primary');text=await res.text();assert.equal(res.status,200,text);assert(calls.slice(aStart).includes('backup'));assert(!calls.slice(aStart).includes('backup-two'));
+ const bStart=calls.length;res=await completion(kb.secret,'key-primary',true);text=await res.text();assert.equal(res.status,200,text);assert(text.includes('[DONE]'));assert(calls.slice(bStart).includes('backup-two'));assert(!calls.slice(bStart).includes('backup'));
+ const deny=calls.length;res=await completion(kb.secret,'backup-two');await res.text();assert(res.status>=400);assert.equal(calls.length,deny);
+ s=await admin('state');assert.deepEqual(s.routes.find(r=>r.alias==='key-primary').targets,['key-primary']);
+ console.log('PASS independent per-key fallback, streaming, backup allowlist isolation and unchanged shared policy');
  console.log('Integration passed. State retained for inspection at '+work);
 }catch(e){console.error(logs);throw e}finally{child.kill('SIGTERM');upstream.close();}

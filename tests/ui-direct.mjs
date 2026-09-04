@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 const browser=await chromium.launch({executablePath:process.env.CHROME_BINARY||'/usr/bin/google-chrome',headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:1000}});
+async function chooseModels(values){
+ if(!Array.isArray(values))values=[values];
+ while(await page.locator('#selectedChips button').count())await page.locator('#selectedChips button').first().click();
+ await page.locator('#pickerToggle').click();
+ for(const value of values){await page.locator('#pickerSearch').fill(value);await page.locator('.picker-option').filter({hasText:value}).locator('input').check()}
+ await page.locator('#pickerSearch').press('Escape');
+}
 const errors=[],external=[];
 page.on('pageerror',e=>errors.push(e.message));
 page.on('request',r=>{if(!r.url().startsWith('http://127.0.0.1:8741'))external.push(r.url())});
@@ -13,7 +20,7 @@ try {
  await page.locator('#adminToken').fill('miftah-local-preview-only');await page.locator('#loginForm button').click();await page.locator('#login').waitFor({state:'hidden'});
  await page.locator('#newKey').click();await page.locator('#keyDialog').waitFor();
  await page.locator('#keyModels option[value="real/model-a"]').waitFor({state:'attached'});
- await page.locator('#keyName').fill('Direct test');await page.locator('#keyModels').selectOption(['real/model-a','real/model-b']);
+ await page.locator('#keyName').fill('Direct test');await chooseModels(['real/model-a','real/model-b']);
  assert(await page.locator('#newModelPrices').isVisible());
  await page.locator('#directInput').fill('1');await page.locator('#directOutput').fill('2');
  await page.locator('#keyForm button[type=submit]').click();await page.locator('#secretDialog').waitFor();
@@ -31,7 +38,7 @@ try {
  await page.locator('nav [data-page=keys]').click();await page.locator('#keyTable [data-edit]').first().click();
  assert.deepEqual(await page.locator('#keyModels').evaluate(e=>[...e.selectedOptions].map(o=>o.value)),['real/model-a','real/model-b']);
  assert(!(await page.locator('#newModelPrices').isVisible()));
- await page.locator('#keyModels').selectOption(['real/model-a','optional-alias']);await page.locator('#keyForm button[type=submit]').click();await page.locator('#keyDialog').waitFor({state:'hidden'});
+ await chooseModels(['real/model-a','optional-alias']);await page.locator('#keyForm button[type=submit]').click();await page.locator('#keyDialog').waitFor({state:'hidden'});
  await page.locator('#newKey').click();await page.locator('#manualModel').fill('manual/model');await page.locator('#addManualModel').click();assert(await page.locator('#newModelPrices').isVisible());await page.locator('[data-close=keyDialog]').click();
  assert.deepEqual(errors,[]);assert.equal(external.length,0);
  assert.deepEqual(await page.evaluate(()=>[Object.keys(localStorage),Object.keys(sessionStorage)]),[[],[]]);

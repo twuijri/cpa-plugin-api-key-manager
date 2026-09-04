@@ -1,0 +1,11 @@
+:root[data-theme="dark"]{color:#e2ebe5;background:#151c19;--green:#287858;--line:#35433b}
+:root[data-theme="dark"] :is(.panel,.metrics article,dialog){background:#202923;color:#e2ebe5}
+:root[data-theme="dark"] :is(input,select,textarea,.model-picker,.fallback-row,th){background:#19221d;color:#e2ebe5;border-color:#405047}
+:root[data-theme="dark"] :is(.model-chip,.target,.route-card li,.feature-icon,.badge){background:#2a3d30;color:#d2e8d7;border-color:#49614f}
+:root[data-theme="dark"] :is(.quiet,.model-chip button,label,legend){color:#c0d3c4;border-color:#48604f}
+:root[data-theme="dark"] :is(.quiet:hover,.picker-option:hover){background:#304337}
+:root[data-theme="dark"] :is(p,.breadcrumb,.eyebrow,.metrics article>span,.metrics small,td small,.empty,footer,footer span:last-child,.picker-popup strong){color:#a9bbae}
+:root[data-theme="dark"] :is(td,.panel-head,.picker-popup){border-color:#35433b}
+:root[data-theme="dark"] .notice{background:#332f20;color:#e4d6a4;border-color:#615838}
+:root[data-theme="dark"] .error{color:#ffa59c}
+:root[data-theme="dark"] :is(input:focus,textarea:focus,select:focus){border-color:#87b395;box-shadow:0 0 0 3px #34533e}
