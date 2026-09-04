@@ -1,5 +1,11 @@
 # Verification
 
+## 0.1.3
+
+- Added an opt-in tab-session admin token using `sessionStorage` (checked by default), with explicit private-device guidance.
+- Browser test verifies reload restoration, logout clearing and unchecked opt-out. A 401 also clears the saved token before reopening login.
+- Existing pricing/zero-price browser tests, Go race tests/vet/build and real CPA v7.2.146 integration pass.
+
 ## 0.1.0
 
 - Removed Alpha branding and published a non-prerelease version at the owner's request; no new claim of certification or additional platform support.

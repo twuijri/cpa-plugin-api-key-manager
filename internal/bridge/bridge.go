@@ -135,7 +135,7 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 // CPA requires a nonempty repository field even for private local builds.
 // Replace via -ldflags when the owner chooses an actual publication URL.
 var Repository = "https://github.com/twuijri/cpa-plugin-api-key-manager"
-var Version = "0.1.2"
+var Version = "0.1.3"
 
 func Registration() any {
 	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "API Key Manager — مفتاح", "Version": Version, "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
