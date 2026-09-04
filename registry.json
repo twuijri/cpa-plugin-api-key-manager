@@ -6,7 +6,7 @@
       "name": "Miftah — مفتاح (Alpha)",
       "description": "Experimental virtual-key manager with budgets, usage, fallback and an Arabic drag-and-drop dashboard. Preserves native CPA keys. STAGING ONLY: Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Read INSTALL.md before installation.",
       "author": "Abdulaziz",
-      "version": "0.1.0-alpha.1",
+      "version": "0.1.0-alpha.2",
       "repository": "https://github.com/twuijri/cpa-plugin-miftah",
       "homepage": "https://github.com/twuijri/cpa-plugin-miftah/blob/main/INSTALL.md",
       "tags": ["Management", "Auth", "Usage", "Experimental"],
@@ -16,9 +16,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://github.com/twuijri/cpa-plugin-miftah/releases/download/v0.1.0-alpha.1/miftah_0.1.0-alpha.1_linux_amd64.zip",
-            "sha256": "017f124a0d6f39343ca2fe87b1dd25ab955f5686ac3870b1e8c7a4ba9bae77d5",
-            "size": 3865553
+            "url": "https://github.com/twuijri/cpa-plugin-miftah/releases/download/v0.1.0-alpha.2/miftah_0.1.0-alpha.2_linux_amd64.zip",
+            "sha256": "f492df3e34c69f02a753fde2ea741a7f5cb5d7331a4cd86d9582dbbf3c39d7c3",
+            "size": 3870618
           }
         ]
       }
