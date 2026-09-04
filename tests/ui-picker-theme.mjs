@@ -44,7 +44,7 @@ try{
  await page.route('**/theme-host',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><html data-theme="white"><iframe src="/v0/resource/plugins/miftah/console"></iframe></html>'}));
  await page.goto('http://127.0.0.1:8741/theme-host');
  const frame=page.frameLocator('iframe');
- await frame.locator('#adminToken').waitFor();
+ await frame.locator('#adminToken').waitFor({state:'attached'});
  assert.equal(await frame.locator('html').getAttribute('data-theme'),'light','host white must override dark OS');
  await page.evaluate(()=>document.documentElement.dataset.theme='dark');
  await page.waitForFunction(()=>document.querySelector('iframe').contentDocument.documentElement.dataset.theme==='dark');

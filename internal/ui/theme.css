@@ -9,3 +9,17 @@
 :root[data-theme="dark"] .notice{background:#332f20;color:#e4d6a4;border-color:#615838}
 :root[data-theme="dark"] .error{color:#ffa59c}
 :root[data-theme="dark"] :is(input:focus,textarea:focus,select:focus){border-color:#87b395;box-shadow:0 0 0 3px #34533e}
+
+/* Follow the host console's neutral surfaces instead of imposing a green brand. */
+:root{color:#242424;background:#f5f5f5;--green:#4b5563;--line:#e2e2e2}
+:root aside{background:#262626;color:#f0f0f0}:root .mark{background:#3a3a3a;color:#f0f0f0;border-color:#555}:root nav button{color:#c2c2c2}:root nav button.active{background:#444;color:#fff}:root nav button:hover{background:#383838}:root .workspace{border-color:#4a4a4a}:root .workspace span,:root .side-bottom,:root .side-bottom small{color:#aaa}:root .dot{background:#999}
+:root button.primary{background:#4b5563}:root button.primary:hover{background:#374151}:root .badge,:root .feature-icon,:root .model-chip,:root .target,:root .route-card li{background:#eee;color:#444;border-color:#d2d2d2}:root input:focus,:root textarea:focus,:root select:focus{border-color:#737373;box-shadow:0 0 0 3px #ddd}:root #toast{background:#303030;box-shadow:0 10px 30px #0003}:root dialog::backdrop{background:#111b}
+:root[data-theme="dark"]{color:#ededed;background:#181818;--green:#4b5563;--line:#383838}
+:root[data-theme="dark"] :is(.panel,.metrics article,dialog){background:#242424;color:#ededed}
+:root[data-theme="dark"] :is(input,select,textarea,.model-picker,.fallback-row,th){background:#1d1d1d;color:#ededed;border-color:#444}
+:root[data-theme="dark"] :is(.model-chip,.target,.route-card li,.feature-icon,.badge){background:#333;color:#e5e5e5;border-color:#505050}
+:root[data-theme="dark"] :is(.quiet,.model-chip button,label,legend){color:#d0d0d0;border-color:#505050}
+:root[data-theme="dark"] :is(.quiet:hover,.picker-option:hover){background:#383838}
+:root[data-theme="dark"] :is(p,.breadcrumb,.eyebrow,.metrics article>span,.metrics small,td small,.empty,footer,footer span:last-child,.picker-popup strong){color:#aaa}
+:root[data-theme="dark"] :is(td,.panel-head,.picker-popup){border-color:#383838}
+:root[data-theme="dark"] :is(input:focus,textarea:focus,select:focus){border-color:#737373;box-shadow:0 0 0 3px #404040}

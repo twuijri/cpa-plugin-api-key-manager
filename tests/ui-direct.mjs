@@ -41,7 +41,7 @@ try {
  await chooseModels(['real/model-a','optional-alias']);await page.locator('#keyForm button[type=submit]').click();await page.locator('#keyDialog').waitFor({state:'hidden'});
  await page.locator('#newKey').click();await page.locator('#manualModel').fill('manual/model');await page.locator('#addManualModel').click();assert(await page.locator('#newModelPrices').isVisible());await page.locator('[data-close=keyDialog]').click();
  assert.deepEqual(errors,[]);assert.equal(external.length,0);
- assert.deepEqual(await page.evaluate(()=>[Object.keys(localStorage),Object.keys(sessionStorage)]),[[],[]]);
+ assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),[]);assert.deepEqual(await page.evaluate(()=>Object.keys(sessionStorage)),['api-key-manager.admin-token.v1']);
  await page.locator('nav [data-page=models]').click();await mkdir('artifacts',{recursive:true});await page.screenshot({path:'artifacts/direct-models.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'artifacts/direct-mobile.png',fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  console.log('PASS direct selection without alias, catalog, pricing, fixed primary, ordered optional fallback, named routes, mixed edit, manual entry, secret storage, mobile');

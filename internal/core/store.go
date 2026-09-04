@@ -384,6 +384,59 @@ func (s *Store) PutRoute(r Route, rev int64) error {
 		return nil
 	})
 }
+
+// SyncDirectModels atomically creates discovered direct models and applies
+// exact catalog prices without replacing existing fallback or output settings.
+func (s *Store) SyncDirectModels(models []string, prices map[string]Price, rev int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(models) == 0 || len(models) > 1000 {
+		return errors.New("model catalog must contain 1-1000 models")
+	}
+	seen := map[string]bool{}
+	for _, model := range models {
+		if model == "" || len(model) > 200 || strings.TrimSpace(model) != model || seen[model] {
+			return errors.New("invalid or duplicate catalog model")
+		}
+		seen[model] = true
+	}
+	for model, price := range prices {
+		if !seen[model] || price.InputPrice < 0 || price.OutputPrice < 0 || price.InputPrice > 1e9 || price.OutputPrice > 1e9 {
+			return errors.New("invalid catalog price")
+		}
+	}
+	return s.change(func(st *State) error {
+		if rev != st.Revision {
+			return ErrConflict
+		}
+		for _, model := range models {
+			index := -1
+			for i := range st.Routes {
+				if st.Routes[i].Alias == model {
+					index = i
+					break
+				}
+			}
+			price, matched := prices[model]
+			if index >= 0 {
+				if st.Routes[index].Kind != "direct" {
+					continue
+				}
+				if matched {
+					st.Routes[index].InputPrice, st.Routes[index].OutputPrice = price.InputPrice, price.OutputPrice
+				}
+				continue
+			}
+			r := Route{Kind: "direct", Alias: model, Targets: []string{model}, MaxOutput: 4096}
+			if matched {
+				r.InputPrice, r.OutputPrice = price.InputPrice, price.OutputPrice
+			}
+			st.Routes = append(st.Routes, r)
+		}
+		logAudit(st, s.now(), "catalog.prices.synced", fmt.Sprintf("%d-models", len(models)))
+		return nil
+	})
+}
 func validRoute(r Route) error {
 	if r.Kind != "" && r.Kind != "route" && r.Kind != "direct" {
 		return errors.New("invalid policy kind")

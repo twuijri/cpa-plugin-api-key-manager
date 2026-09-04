@@ -9,7 +9,7 @@ modelNav.dataset.page = 'models'; modelNav.textContent = '◉ الموديلات
 document.querySelector('nav [data-page="routes"]').before(modelNav);
 const modelsPage = document.createElement('section');
 modelsPage.id = 'models'; modelsPage.className = 'page hidden';
-modelsPage.innerHTML = '<div class="panel"><div class="panel-head"><div><h2>موديلات مباشرة</h2><p>يستخدم العميل اسم الموديل الحقيقي. البدائل اختيارية ومشتركة بين المفاتيح التي تسمح بهذا الموديل.</p></div><button id="newModel" class="primary">＋ إعداد موديل</button></div><div id="directList" class="route-grid"></div></div>';
+modelsPage.innerHTML = '<div class="panel"><div class="panel-head"><div><h2>موديلات مباشرة</h2><p>يستخدم العميل اسم الموديل الحقيقي. البدائل اختيارية ومشتركة بين المفاتيح التي تسمح بهذا الموديل.</p></div><div class="dialog-actions"><button id="syncAllPrices" class="quiet">جلب كل الموديلات وتسعيرها</button><button id="newModel" class="primary">＋ إعداد موديل</button></div></div><p id="syncPriceStatus" role="status"></p><div id="directList" class="route-grid"></div></div>';
 $('routes').before(modelsPage);
 document.querySelector('#routes .panel-head p').textContent = 'اختياري: اسم مخصص يجمع موديلًا أساسيًا وبدائل مرتّبة. المسارات الحالية محفوظة.';
 $('keyModels').parentElement.firstChild.textContent = 'الموديلات المسموحة والمسارات الاختيارية';
@@ -62,6 +62,21 @@ async function loadCatalog() {
   updateDatalist();
  } catch (err) { if (token === sessionToken) $('catalogStatus').textContent = err.message; }
 }
+async function discoveredModels(sessionToken) {
+ const files=(await managementRead('auth-files',sessionToken)).files||[], found=new Set();
+ for(let i=0;i<files.length;i+=4){const results=await Promise.allSettled(files.slice(i,i+4).filter(f=>!f.disabled).map(f=>managementRead('auth-files/models?name='+encodeURIComponent(f.name),sessionToken)));for(const result of results)if(result.status==='fulfilled')for(const m of result.value.models||[])if(typeof m.id==='string'&&m.id.length<=200)found.add(m.id)}
+ return [...found].sort();
+}
+$('syncAllPrices').onclick=()=>guard(async()=>{
+ const sessionToken=token;$('syncPriceStatus').textContent='جاري جلب موديلات البروكسي والأسعار المرجعية…';
+ const [models,reference]=await Promise.all([discoveredModels(sessionToken),api('prices')]);
+ if(token!==sessionToken)return;
+ if(!models.length)throw Error('لم يتم العثور على موديلات في حسابات البروكسي');
+ const prices={};for(const id of models)if(Object.hasOwn(reference.prices,id))prices[id]=reference.prices[id];
+ await api('catalog-prices','PUT',{models,prices,revision:state.revision});await refresh();catalog=new Set([...catalog,...models]);updateDatalist();
+ $('syncPriceStatus').textContent='تمت إضافة/مراجعة '+models.length+' موديل؛ تسعير '+Object.keys(prices).length+' تلقائيًا، و'+(models.length-Object.keys(prices).length)+' بدون تطابق (سعره السابق محفوظ أو صفر للجديد).';
+ toast('اكتمل جلب الموديلات والتسعير');
+});
 const suggestions = document.createElement('datalist'); suggestions.id = 'modelSuggestions'; document.body.append(suggestions);
 function updateDatalist() { suggestions.innerHTML = [...catalog].sort().map(n => '<option value="' + esc(n) + '"></option>').join(''); }
 const originalKeyForm = keyForm;

@@ -120,10 +120,10 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 		return nil, &RPCError{"unsupported", "endpoint not supported for virtual keys", 403}
 	case "management.register":
 		routes := []map[string]string{}
-		for _, x := range [][2]string{{"GET", "state"}, {"GET", "prices"}, {"POST", "keys"}, {"PUT", "keys"}, {"POST", "rotate"}, {"PUT", "routes"}} {
+		for _, x := range [][2]string{{"GET", "state"}, {"GET", "prices"}, {"PUT", "catalog-prices"}, {"POST", "keys"}, {"PUT", "keys"}, {"POST", "rotate"}, {"PUT", "routes"}} {
 			routes = append(routes, map[string]string{"Method": x[0], "Path": "miftah/" + x[1]})
 		}
-		resources := []map[string]string{{"Path": "/models"}, {"Path": "/console", "Menu": "API Key Manager — مفتاح"}, {"Path": "/app.js"}, {"Path": "/direct.js"}, {"Path": "/pricing.js"}, {"Path": "/picker.js"}, {"Path": "/theme.js"}, {"Path": "/style.css"}, {"Path": "/picker.css"}, {"Path": "/theme.css"}}
+		resources := []map[string]string{{"Path": "/models"}, {"Path": "/console", "Menu": "API Key Manager — مفتاح"}, {"Path": "/app.js"}, {"Path": "/direct.js"}, {"Path": "/pricing.js"}, {"Path": "/picker.js"}, {"Path": "/i18n.js"}, {"Path": "/theme.js"}, {"Path": "/style.css"}, {"Path": "/picker.css"}, {"Path": "/theme.css"}}
 		return map[string]any{"Routes": routes, "Resources": resources}, nil
 	case "management.handle":
 		return a.Manage(r), nil
@@ -135,7 +135,7 @@ func (a *App) Handle(method string, raw []byte) (any, error) {
 // CPA requires a nonempty repository field even for private local builds.
 // Replace via -ldflags when the owner chooses an actual publication URL.
 var Repository = "https://github.com/twuijri/cpa-plugin-api-key-manager"
-var Version = "0.1.3"
+var Version = "0.1.4"
 
 func Registration() any {
 	return map[string]any{"schema_version": 4, "metadata": map[string]any{"Name": "API Key Manager — مفتاح", "Version": Version, "Author": "Abdulaziz", "GitHubRepository": Repository}, "capabilities": map[string]any{"frontend_auth_provider": true, "frontend_auth_provider_exclusive": false, "model_router": true, "executor": true, "executor_model_scope": "both", "executor_input_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "executor_output_formats": []string{"openai", "chat-completions", "openai-response", "responses", "claude"}, "management_api": true}}
@@ -173,6 +173,15 @@ func (a *App) Manage(r Request) Response {
 	switch {
 	case r.Method == "GET" && path == "prices":
 		return referencePrices()
+	case r.Method == "PUT" && path == "catalog-prices":
+		var v struct {
+			Models   []string              `json:"models"`
+			Prices   map[string]core.Price `json:"prices"`
+			Revision int64                 `json:"revision"`
+		}
+		if err = decode(r.Body, &v); err == nil {
+			err = a.Store.SyncDirectModels(v.Models, v.Prices, v.Revision)
+		}
 	case r.Method == "GET" && path == "state":
 		return reply(200, a.Store.Snapshot())
 	case r.Method == "POST" && path == "keys":

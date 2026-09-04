@@ -4,9 +4,9 @@
     {
       "id": "miftah",
       "name": "API Key Manager — مفتاح",
-      "description": "Per-key model prices, markup/discount and optional exact-name LiteLLM reference import. Actual fallback billing with request price snapshots. Native /v1/models remains global; execution is per-key restricted. No Docker socket or custom image. Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Accounting is estimated; back up state before updates. Read INSTALL.md.",
+      "description": "Arabic/English API key manager with host light/dark theme. Imports all proxy models and exact-match reference prices in one action; unmatched models safely remain zero. Per-key pricing and actual fallback accounting. No Docker socket or custom image. Linux amd64, glibc >= 2.34; NOT Alpine/musl or ARM64. Tested with CPA v7.2.146. Accounting is estimated; back up state before updates. Read INSTALL.md.",
       "author": "Abdulaziz",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/INSTALL.md",
       "tags": ["Management", "Auth", "Usage"],
@@ -16,9 +16,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://github.com/twuijri/cpa-plugin-api-key-manager/releases/download/v0.1.3/miftah_0.1.3_linux_amd64.zip",
-            "sha256": "21fa953e77a26e14766835d9cd63f211247805367c7c1929b62dfd18c8090498",
-            "size": 5521163
+            "url": "https://github.com/twuijri/cpa-plugin-api-key-manager/releases/download/v0.1.4/miftah_0.1.4_linux_amd64.zip",
+            "sha256": "813b0e3f164f3088879eda73d620d76edbb64fd51ca32fb10e0d00f4fc71c6ee",
+            "size": 5526612
           }
         ]
       }

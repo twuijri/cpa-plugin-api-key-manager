@@ -1,5 +1,13 @@
 # Verification
 
+## 0.1.4
+
+- Added an atomic catalog sync that creates every model discovered from enabled proxy auth entries, applies exact-name public reference prices, preserves existing fallback/output configuration, and leaves unmatched new models at zero rather than guessing.
+- Core tests cover exact prices, preservation, unmatched models, conflict handling, duplicate rejection, and atomic rollback.
+- Playwright covers full catalog import/pricing, Arabic/English persistence and RTL/LTR direction, and live host light/dark theme inheritance with neutral colors.
+- `go test -race ./...`, `go vet ./...`, package build, and the real CPA v7.2.146 mock-provider integration passed, including native keys, virtual keys, streaming, fallback, isolation, and actual-model per-key charging.
+- Release artifact SHA-256: `813b0e3f164f3088879eda73d620d76edbb64fd51ca32fb10e0d00f4fc71c6ee`.
+
 ## 0.1.3
 
 - Added an opt-in tab-session admin token using `sessionStorage` (checked by default), with explicit private-device guidance.

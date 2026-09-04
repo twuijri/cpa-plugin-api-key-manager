@@ -70,6 +70,41 @@ func TestKeyPricesIsolationSnapshotAndFallback(t *testing.T) {
 	}
 }
 
+func TestSyncDirectModelsPricesAtomically(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	existing := directPolicy("existing")
+	existing.Targets = []string{"existing", "backup"}
+	if err = s.PutRoute(existing, s.Snapshot().Revision); err != nil {
+		t.Fatal(err)
+	}
+	prices := map[string]Price{"existing": {InputPrice: 2, OutputPrice: 3}, "new": {InputPrice: 4, OutputPrice: 5}}
+	if err = s.SyncDirectModels([]string{"existing", "new", "unknown"}, prices, s.Snapshot().Revision); err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Snapshot().Routes) != 3 {
+		t.Fatal(s.Snapshot().Routes)
+	}
+	r, _ := s.Route("existing")
+	if r.InputPrice != 2 || len(r.Targets) != 2 {
+		t.Fatal("existing fallback overwritten", r)
+	}
+	r, _ = s.Route("unknown")
+	if r.InputPrice != 0 || r.OutputPrice != 0 {
+		t.Fatal("unmatched price guessed", r)
+	}
+	revision := s.Snapshot().Revision
+	if err = s.SyncDirectModels([]string{"bad", "bad"}, nil, revision); err == nil {
+		t.Fatal("duplicate accepted")
+	}
+	if s.Snapshot().Revision != revision {
+		t.Fatal("invalid sync mutated state")
+	}
+}
+
 func TestKeyPricesBudgetAndValidation(t *testing.T) {
 	s, err := Open(filepath.Join(t.TempDir(), "state.json"))
 	if err != nil {
