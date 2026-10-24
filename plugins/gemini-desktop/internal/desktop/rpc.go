@@ -245,9 +245,11 @@ func completion(id, model, text string, created int64) []byte {
 	return result
 }
 
-func sse(id, model string, created int64, delta map[string]any, finish any) []byte {
+// The host's OpenAI handler owns SSE framing and the final [DONE] event.
+// Same-format executor chunks reach that handler without a translator.
+func streamChunk(id, model string, created int64, delta map[string]any, finish any) []byte {
 	result, _ := json.Marshal(map[string]any{"id": id, "object": "chat.completion.chunk", "created": created, "model": model, "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}})
-	return append(append([]byte("data: "), result...), []byte("\n\n")...)
+	return result
 }
 
 var _ pluginapi.ProviderExecutor = (*Plugin)(nil)

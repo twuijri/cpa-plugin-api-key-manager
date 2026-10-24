@@ -1,6 +1,6 @@
 # Gemini Desktop provider for CLIProxyAPI
 
-Experimental native provider **0.1.1-preview** for **CLIProxyAPI v8.0.41**. It signs in through the Google client used by Gemini Desktop and calls Gemini's native `RobinService.ProcessQuery` service. It does not use Antigravity credentials, Gemini CLI credentials, or browser cookies.
+Experimental native provider **0.1.2-preview** for **CLIProxyAPI v8.0.41**. It signs in through the Google client used by Gemini Desktop and calls Gemini's native `RobinService.ProcessQuery` service. It does not use Antigravity credentials, Gemini CLI credentials, or browser cookies.
 
 The provider ID is `gemini-desktop`. The model alias is **`gemini-desktop-auto`**. Google selects the account's default model; this alias does not pin Argon, Pro, Flash, or a particular model version.
 
@@ -16,6 +16,8 @@ The provider ID is `gemini-desktop`. The model alias is **`gemini-desktop-auto`*
 This preview does **not** implement API tool calling, images, attachments, structured JSON/schema output, exact token accounting, or native conversation resumption. Unsupported tools and attachments return an explicit error. Token usage is omitted rather than estimated. Sampling settings and token-output limits are not mapped to native controls in this preview.
 
 The implementation uses reverse-engineered native request fields observed in Gemini macOS **1.135.1.1291**. Google can change those fields or account requirements. The plugin is an independent integration; successful requests do not establish Google endorsement or guarantee compatibility with provider terms.
+
+Version **0.1.2-preview** fixes streaming through CLIProxyAPI: the plugin passes raw JSON chunks to the host, which adds SSE framing and the final `[DONE]` marker.
 
 ## Validation boundary
 
@@ -48,7 +50,7 @@ ZIG_BIN=/absolute/path/to/zig \
 ./scripts/build-linux.sh amd64
 ```
 
-The Zig target uses GNU libc 2.17 as the compatibility baseline. The script writes the shared library, a single-library ZIP, and checksums under `build/linux_amd64/` or `build/linux_arm64/`. The 0.1.1 archive contains `gemini-desktop-v0.1.1-preview.so` at its root; the standalone `gemini-desktop.so` is also kept for manual installation. The host installer accepts this versioned name and installs a new version path rather than overwriting a library that is already loaded. A host restart may still be needed to activate the update. Build caches stay under `build/cache/` unless overridden. These are build targets, not claims that both platforms have been tested in a running host.
+The Zig target uses GNU libc 2.17 as the compatibility baseline. The script writes the shared library, a single-library ZIP, and checksums under `build/linux_amd64/` or `build/linux_arm64/`. The 0.1.2 archive contains `gemini-desktop-v0.1.2-preview.so` at its root; the standalone `gemini-desktop.so` is also kept for manual installation. The host installer accepts this versioned name and installs a new version path rather than overwriting a library that is already loaded. A host restart may still be needed to activate the update. Build caches stay under `build/cache/` unless overridden. These are build targets, not claims that both platforms have been tested in a running host.
 
 For a local macOS development build:
 
@@ -106,7 +108,7 @@ A credential exported by a local helper must use `"type": "gemini-desktop"` and 
 
 ### Account labels and upgrading from 0.1.0-preview
 
-Version **0.1.1-preview** retrieves the verified account email from Google's user-info service. New logins show that email as the credential label and use a filename such as `gemini-desktop-person@example.com.json`.
+Version **0.1.1-preview** and newer retrieve the verified account email from Google's user-info service. New logins show that email as the credential label and use a filename such as `gemini-desktop-person@example.com.json`.
 
 Existing credential files keep their original filename and host ID. A legacy credential without an email acquires its account label on a subsequent refresh when Google user-info is available; no manual rename or fresh login is required for that upgrade. If the email lookup temporarily fails after a successful token refresh, the refreshed credential is still persisted, including any rotated refresh token, and the email lookup can be retried on a later refresh. A new login must identify a verified account before it is accepted.
 

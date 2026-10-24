@@ -222,32 +222,31 @@ func TestStreamCumulativeSnapshotsDoNotDuplicate(t *testing.T) {
 		t.Fatal(err)
 	}
 	var output strings.Builder
-	done := 0
+	finished := 0
 	for chunk := range r.Chunks {
 		if chunk.Err != nil {
 			t.Fatal(chunk.Err)
 		}
-		s := string(chunk.Payload)
-		if s == "data: [DONE]\n\n" {
-			done++
-			continue
-		}
 		var e struct {
 			Choices []struct {
-				Delta struct {
+				FinishReason string `json:"finish_reason"`
+				Delta        struct {
 					Content string `json:"content"`
 				} `json:"delta"`
 			} `json:"choices"`
 		}
-		if err = json.Unmarshal([]byte(strings.TrimSpace(strings.TrimPrefix(s, "data: "))), &e); err != nil {
+		if err = json.Unmarshal(chunk.Payload, &e); err != nil {
 			t.Fatal(err)
 		}
 		for _, c := range e.Choices {
 			output.WriteString(c.Delta.Content)
+			if c.FinishReason == "stop" {
+				finished++
+			}
 		}
 	}
-	if output.String() != "مرحبا" || done != 1 {
-		t.Fatalf("bad streamed output: %q (%d DONE)", output.String(), done)
+	if output.String() != "مرحبا" || finished != 1 {
+		t.Fatalf("bad streamed output: %q (%d finish chunks)", output.String(), finished)
 	}
 }
 
