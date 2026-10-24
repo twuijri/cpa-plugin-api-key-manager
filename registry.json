@@ -9,7 +9,11 @@
       "version": "0.1.5",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/INSTALL.md",
-      "tags": ["Management", "Auth", "Usage"],
+      "tags": [
+        "Management",
+        "Auth",
+        "Usage"
+      ],
       "install": {
         "type": "direct",
         "artifacts": [
@@ -19,6 +23,35 @@
             "url": "https://github.com/twuijri/cpa-plugin-api-key-manager/releases/download/v0.1.5/miftah_0.1.5_linux_amd64.zip",
             "sha256": "3daa08515196794871ac50c8dcde3b475692c48d461cd07d2d547f60d93c6fca",
             "size": 5529567
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemini-desktop",
+      "name": "Gemini Desktop Preview",
+      "description": "Native Gemini Desktop account provider for text Chat Completions and streaming. Separate from Antigravity and Gemini CLI. Google chooses the default model via gemini-desktop-auto. Experimental: no tools, images, attachments or exact token accounting. Tested locally; requires CPA 8.0.41 and Linux amd64 glibc.",
+      "author": "Abdulaziz",
+      "version": "0.1.0-preview",
+      "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
+      "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/plugins/gemini-desktop/README_AR.md",
+      "license": "MIT",
+      "tags": [
+        "Provider",
+        "Gemini",
+        "Desktop",
+        "OAuth",
+        "Streaming"
+      ],
+      "install": {
+        "type": "direct",
+        "artifacts": [
+          {
+            "goos": "linux",
+            "goarch": "amd64",
+            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/gemini-desktop/0.1.0-preview/gemini-desktop_0.1.0-preview_linux_amd64.zip",
+            "sha256": "2e438b003ac11dc097e5a338f8c74dd187a7a38e2aec3d9110373c35935082b5",
+            "size": 8808837
           }
         ]
       }
