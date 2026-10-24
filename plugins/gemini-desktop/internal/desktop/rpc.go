@@ -72,15 +72,23 @@ func nativeConnection(proxyURL string) (*grpc.ClientConn, error) {
 // Generate sends only the supplied conversation text to Gemini's native service.
 // A caller must cancel ctx when its client disconnects; no generation deadline is imposed.
 func Generate(ctx context.Context, token, proxyURL, prompt string, snapshot func(string) error) error {
+	return GenerateSelected(ctx, token, proxyURL, prompt, NativeModel{}, snapshot)
+}
+
+func GenerateSelected(ctx context.Context, token, proxyURL, prompt string, selected NativeModel, snapshot func(string) error) error {
 	conn, err := nativeConnection(proxyURL)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = conn.Close() }()
-	return generateOnConnection(ctx, conn, token, prompt, snapshot)
+	return generateSelectedOnConnection(ctx, conn, token, prompt, selected, snapshot)
 }
 
 func generateOnConnection(ctx context.Context, conn grpc.ClientConnInterface, token, prompt string, snapshot func(string) error) error {
+	return generateSelectedOnConnection(ctx, conn, token, prompt, NativeModel{}, snapshot)
+}
+
+func generateSelectedOnConnection(ctx context.Context, conn grpc.ClientConnInterface, token, prompt string, selected NativeModel, snapshot func(string) error) error {
 	if token == "" {
 		return failure(401, "Gemini access token is missing")
 	}
@@ -92,7 +100,7 @@ func generateOnConnection(ctx context.Context, conn grpc.ClientConnInterface, to
 	if err != nil {
 		return rpcError(err)
 	}
-	for _, frame := range requestFrames(prompt) {
+	for _, frame := range requestFramesSelected(prompt, selected) {
 		if err = stream.SendMsg(frame); err != nil {
 			return rpcError(err)
 		}

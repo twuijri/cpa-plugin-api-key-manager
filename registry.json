@@ -30,9 +30,9 @@
     {
       "id": "gemini-desktop",
       "name": "Gemini Desktop Preview",
-      "description": "Native Gemini Desktop account provider for text Chat Completions and streaming. Separate from Antigravity and Gemini CLI. Google chooses the default model via gemini-desktop-auto. Experimental: no tools, images, attachments or exact token accounting. Tested locally; requires CPA 8.0.41 and Linux amd64 glibc.",
+      "description": "Gemini Desktop OAuth provider with account-discovered native model names and real mode selection, plus text Chat Completions and SSE. Native account examples: 3.5 Flash-Lite, 3.8 Flash, 3.1 Pro, 4 Argon. Separate from Antigravity and Gemini CLI. Refresh credentials after upgrading to discover modes. Preview: no tools, images or exact token usage.",
       "author": "Abdulaziz",
-      "version": "0.1.2-preview",
+      "version": "0.2.0-preview",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/plugins/gemini-desktop/README_AR.md",
       "license": "MIT",
@@ -49,9 +49,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/gemini-desktop/0.1.2-preview/gemini-desktop_0.1.2-preview_linux_amd64.zip",
-            "sha256": "0afe1254b57d0818c8f70e1f711e1dd202e8ab4acbe98a76a1e91172afe5f9ed",
-            "size": 8883363
+            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/gemini-desktop/0.2.0-preview/gemini-desktop_0.2.0-preview_linux_amd64.zip",
+            "sha256": "091b2c1897e238a4ab148fe4f3a00bb9bd07529aa33ea818cb0ce4fcbe902f66",
+            "size": 8903871
           }
         ]
       }
@@ -61,7 +61,7 @@
       "name": "Model Playground — شات التجربة",
       "description": "Arabic text chat and model picker for this proxy. Manual client API key, memory-only conversations, SSE streaming. Independently hardened fork of hex-ci/cpa-plugin-model-playground; no automatic management-key or API-key-list reading.",
       "author": "hex-ci / Abdulaziz local variant",
-      "version": "0.3.0-local.2",
+      "version": "0.3.0-local.3",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/plugins/model-playground/README.md",
       "license": "MIT",
@@ -77,9 +77,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/model-playground/0.3.0-local.2/model-playground-v0.3.0-local.2-linux-amd64.zip",
-            "sha256": "327ea6fcc8579d5de9097866edf712f0b170f9c489f66172de3c77c7185f6749",
-            "size": 3319163
+            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/model-playground/0.3.0-local.3/model-playground_0.3.0-local.3_linux_amd64.zip",
+            "sha256": "0eec55ac233d6e169316ee6c9352fd562b381ea2642de5587ce9babd65c35737",
+            "size": 3311948
           }
         ]
       }

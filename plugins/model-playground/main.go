@@ -69,7 +69,7 @@ const providerName = "model-playground"
 
 // version is injected at build time via -ldflags "-X main.version=...".
 // The default matches the VERSION file for builds without ldflags.
-var version = "0.3.0-local.2"
+var version = "0.3.0-local.3"
 
 var hostAPI *C.cliproxy_host_api
 

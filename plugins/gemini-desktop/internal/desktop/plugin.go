@@ -21,13 +21,15 @@ type Config struct {
 }
 
 type Plugin struct {
-	config    Config
-	mu        sync.Mutex
-	pending   map[string]Login
-	root      context.Context
-	cancel    context.CancelFunc
-	generate  func(context.Context, string, string, string, func(string) error) error
-	hostProxy string
+	config           Config
+	mu               sync.Mutex
+	pending          map[string]Login
+	root             context.Context
+	cancel           context.CancelFunc
+	generate         func(context.Context, string, string, string, func(string) error) error
+	generateSelected func(context.Context, string, string, string, NativeModel, func(string) error) error
+	discover         func(context.Context, string, string) ([]NativeModel, error)
+	hostProxy        string
 }
 
 func Build(configYAML []byte) (pluginapi.Plugin, error) {
@@ -44,9 +46,9 @@ func Build(configYAML []byte) (pluginapi.Plugin, error) {
 		return pluginapi.Plugin{}, failure(400, "callback_port must be between 1024 and 65535")
 	}
 	root, cancel := context.WithCancel(context.Background())
-	p := &Plugin{config: config, pending: make(map[string]Login), root: root, cancel: cancel, generate: Generate}
+	p := &Plugin{config: config, pending: make(map[string]Login), root: root, cancel: cancel, generate: Generate, generateSelected: GenerateSelected, discover: DiscoverModels}
 	return pluginapi.Plugin{
-		Metadata: pluginapi.Metadata{Name: "Gemini Desktop Preview", Version: "0.1.2-preview", Author: "Local integration", GitHubRepository: "https://github.com/twuijri/cpa-plugin-api-key-manager", ConfigFields: []pluginapi.ConfigField{
+		Metadata: pluginapi.Metadata{Name: "Gemini Desktop Preview", Version: "0.2.0-preview", Author: "Local integration", GitHubRepository: "https://github.com/twuijri/cpa-plugin-api-key-manager", ConfigFields: []pluginapi.ConfigField{
 			{Name: "callback_port", Type: pluginapi.ConfigFieldTypeInteger, Default: 51123, Description: "Loopback OAuth callback port. Remote browser logins require forwarding or submitting the callback URL in the OAuth panel."},
 			{Name: "proxy_url", Type: pluginapi.ConfigFieldTypeString, Default: "", Description: "Upstream HTTP CONNECT or SOCKS proxy for native gRPC; inherits proxy-url when empty."},
 		}},
@@ -163,6 +165,7 @@ func (p *Plugin) PollLogin(ctx context.Context, req pluginapi.AuthLoginPollReque
 	if err != nil {
 		return pluginapi.AuthLoginPollResponse{}, err
 	}
+	p.discoverCredentialModels(ctx, &c)
 	auth, err := Auth(c)
 	return pluginapi.AuthLoginPollResponse{Status: pluginapi.AuthLoginStatusSuccess, Auth: auth}, err
 }
@@ -177,6 +180,7 @@ func (p *Plugin) RefreshAuth(ctx context.Context, req pluginapi.AuthRefreshReque
 	if err != nil {
 		return pluginapi.AuthRefreshResponse{}, err
 	}
+	p.discoverCredentialModels(ctx, &c)
 	auth, err := Auth(c)
 	if req.AuthID != "" {
 		auth.ID, auth.FileName = req.AuthID, req.AuthID
@@ -193,16 +197,79 @@ func (p *Plugin) StaticModels(_ context.Context, req pluginapi.StaticModelReques
 }
 func (p *Plugin) ModelsForAuth(_ context.Context, req pluginapi.AuthModelRequest) (pluginapi.ModelResponse, error) {
 	p.observeHost(req.Host)
-	if _, err := ParseCredential(req.StorageJSON); err != nil {
+	c, err := ParseCredential(req.StorageJSON)
+	if err != nil {
 		return pluginapi.ModelResponse{}, err
 	}
-	return models(), nil
+	response := pluginapi.ModelResponse{Provider: Provider}
+	seen := map[string]bool{Model: true}
+	for _, selected := range c.Models {
+		alias := selected.Alias()
+		if !validNativeSelection(selected) || alias == "" || seen[alias] {
+			continue
+		}
+		seen[alias] = true
+		response.Models = append(response.Models, pluginapi.ModelInfo{ID: alias, Object: "model", OwnedBy: "google", Type: Provider, Name: alias, DisplayName: selected.Title, Description: "Native Gemini Desktop model selected from this account's available modes.", SupportedInputModalities: []string{"text"}, SupportedOutputModalities: []string{"text"}})
+	}
+	response.Models = append(response.Models, models().Models...)
+	return response, nil
+}
+
+func (p *Plugin) proxyFor(c Credential) string {
+	if c.ProxyURL != "" {
+		return c.ProxyURL
+	}
+	if p.config.ProxyURL != "" {
+		return p.config.ProxyURL
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.hostProxy
+}
+
+func (p *Plugin) discoverCredentialModels(ctx context.Context, c *Credential) {
+	// Discovery must not prevent a successfully rotated token from being saved.
+	if p.discover == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	if discovered, err := p.discover(ctx, c.AccessToken, p.proxyFor(*c)); err == nil {
+		c.Models = discovered
+	}
+}
+
+func selectedModel(c Credential, alias string) (NativeModel, error) {
+	if alias == Model {
+		return NativeModel{}, nil
+	}
+	for _, model := range c.Models {
+		if validNativeSelection(model) && model.Alias() == alias {
+			return model, nil
+		}
+	}
+	if len(c.Models) == 0 {
+		return NativeModel{}, failure(409, "Gemini account model list is unavailable; refresh this credential to discover its models")
+	}
+	return NativeModel{}, failure(404, "Requested Gemini Desktop model is not available for this account")
+}
+
+func validNativeSelection(model NativeModel) bool {
+	return validateNativeModel(model) == nil
+}
+
+func (p *Plugin) generateFor(ctx context.Context, req pluginapi.ExecutorRequest, c Credential, proxyURL, prompt string, snapshot func(string) error) error {
+	if req.Model == Model {
+		return p.generate(ctx, c.AccessToken, proxyURL, prompt, snapshot)
+	}
+	selected, err := selectedModel(c, req.Model)
+	if err != nil {
+		return err
+	}
+	return p.generateSelected(ctx, c.AccessToken, proxyURL, prompt, selected, snapshot)
 }
 
 func (p *Plugin) prepare(ctx context.Context, req pluginapi.ExecutorRequest) (Credential, string, string, error) {
-	if req.Model != Model {
-		return Credential{}, "", "", failure(404, "Unknown Gemini Desktop model")
-	}
 	if req.Format != "openai" {
 		return Credential{}, "", "", failure(400, "Gemini Desktop requires the OpenAI Chat Completions format")
 	}
@@ -214,19 +281,13 @@ func (p *Plugin) prepare(ctx context.Context, req pluginapi.ExecutorRequest) (Cr
 	if err != nil {
 		return Credential{}, "", "", err
 	}
+	if _, err := selectedModel(c, req.Model); err != nil {
+		return Credential{}, "", "", err
+	}
 	if c.AccessToken == "" || !time.Now().Before(c.ExpiresAt) {
 		return Credential{}, "", "", failure(401, "Gemini credential needs refresh; automatic host refresh or the credential panel will renew and persist it")
 	}
-	proxyURL := p.config.ProxyURL
-	if proxyURL == "" {
-		p.mu.Lock()
-		proxyURL = p.hostProxy
-		p.mu.Unlock()
-	}
-	if c.ProxyURL != "" {
-		proxyURL = c.ProxyURL
-	}
-	return c, prompt, proxyURL, nil
+	return c, prompt, p.proxyFor(c), nil
 }
 
 func (p *Plugin) requestContext(parent context.Context) (context.Context, context.CancelFunc) {
@@ -243,7 +304,7 @@ func (p *Plugin) Execute(ctx context.Context, req pluginapi.ExecutorRequest) (pl
 		return pluginapi.ExecutorResponse{}, err
 	}
 	var text string
-	err = p.generate(ctx, c.AccessToken, proxyURL, prompt, func(snapshot string) error { text = snapshot; return nil })
+	err = p.generateFor(ctx, req, c, proxyURL, prompt, func(snapshot string) error { text = snapshot; return nil })
 	if err != nil {
 		return pluginapi.ExecutorResponse{}, err
 	}
@@ -275,7 +336,7 @@ func (p *Plugin) ExecuteStream(ctx context.Context, req pluginapi.ExecutorReques
 			return
 		}
 		previous := ""
-		err := p.generate(ctx, c.AccessToken, proxyURL, prompt, func(text string) error {
+		err := p.generateFor(ctx, req, c, proxyURL, prompt, func(text string) error {
 			if !strings.HasPrefix(text, previous) {
 				return failure(502, "Gemini revised streamed text; retry without streaming")
 			}

@@ -1,4 +1,4 @@
-# Local hardened build 0.3.0-local.2
+# Local hardened build 0.3.0-local.3
 
 Upstream: https://github.com/hex-ci/cpa-plugin-model-playground at commit 72469d5fd0d01cff6682de092cd76f1252f34898.
 Original MIT license remains in LICENSE.
@@ -14,3 +14,7 @@ Build targets Linux amd64 with glibc 2.17 baseline using Zig, SDK imports update
 Version local.2 labels each exact model ID with a source from a verified server-specific map and offers a source filter. Unknown IDs show “غير محدد”; no provider inference is performed. Labels do not alter model IDs sent to the server and cannot force server routing when a shared alias has multiple providers.
 
 Source map verified from the live proxy Auth Models UI on 2026-10-24: 8 Antigravity IDs, 13 Codex IDs, and the unique Gemini Desktop alias. This is a snapshot of this server configuration, not a global provider guarantee. Enter the client API key again after page reload, then press Load models.
+
+Version local.3 recognizes the plugin's dedicated `gemini-desktop-` namespace, including account-discovered named model aliases. This does not infer providers from general Gemini names. All other IDs still require the exact verified map; unknown IDs and lookalike prefixes remain “غير محدد”. Model IDs passed to the server are unchanged. Classification tests execute the panel's own JavaScript against Desktop, known, unknown, and prototype-key cases.
+
+Run the classification regression check with `node model-source.test.cjs`, alongside `go test -race ./...`.

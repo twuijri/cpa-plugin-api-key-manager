@@ -1,8 +1,8 @@
 # Gemini Desktop provider for CLIProxyAPI
 
-Experimental native provider **0.1.2-preview** for **CLIProxyAPI v8.0.41**. It signs in through the Google client used by Gemini Desktop and calls Gemini's native `RobinService.ProcessQuery` service. It does not use Antigravity credentials, Gemini CLI credentials, or browser cookies.
+Experimental native provider **0.2.0-preview** for **CLIProxyAPI v8.0.41**. It signs in through the Google client used by Gemini Desktop and calls Gemini's native `RobinService.ProcessQuery` service. It does not use Antigravity credentials, Gemini CLI credentials, or browser cookies.
 
-The provider ID is `gemini-desktop`. The model alias is **`gemini-desktop-auto`**. Google selects the account's default model; this alias does not pin Argon, Pro, Flash, or a particular model version.
+The provider ID is `gemini-desktop`. Named models are discovered from the signed-in account's native `GetUserStatus` response, using its actual UI titles. Each title becomes a `gemini-desktop-...` alias; selecting it sends the native category and optional variant for that account's mode. **`gemini-desktop-auto`** remains available for Google's default selection; it does not pin a version.
 
 [العربية](README_AR.md)
 
@@ -11,6 +11,7 @@ The provider ID is `gemini-desktop`. The model alias is **`gemini-desktop-auto`*
 - Google browser sign-in with PKCE, followed by automatic refresh-token renewal.
 - Text conversations through OpenAI Chat Completions, including streamed SSE output.
 - Full conversation history supplied in `messages`, folded into a single text transcript for each independent native request.
+- Account-specific named modes discovered during login and credential refresh, with native category/variant selection.
 - Separate credentials and routing from Antigravity and Gemini CLI.
 
 This preview does **not** implement API tool calling, images, attachments, structured JSON/schema output, exact token accounting, or native conversation resumption. Unsupported tools and attachments return an explicit error. Token usage is omitted rather than estimated. Sampling settings and token-output limits are not mapped to native controls in this preview.
@@ -50,7 +51,7 @@ ZIG_BIN=/absolute/path/to/zig \
 ./scripts/build-linux.sh amd64
 ```
 
-The Zig target uses GNU libc 2.17 as the compatibility baseline. The script writes the shared library, a single-library ZIP, and checksums under `build/linux_amd64/` or `build/linux_arm64/`. The 0.1.2 archive contains `gemini-desktop-v0.1.2-preview.so` at its root; the standalone `gemini-desktop.so` is also kept for manual installation. The host installer accepts this versioned name and installs a new version path rather than overwriting a library that is already loaded. A host restart may still be needed to activate the update. Build caches stay under `build/cache/` unless overridden. These are build targets, not claims that both platforms have been tested in a running host.
+The Zig target uses GNU libc 2.17 as the compatibility baseline. The script writes the shared library, a single-library ZIP, and checksums under `build/linux_amd64/` or `build/linux_arm64/`. The 0.2.0 archive contains `gemini-desktop-v0.2.0-preview.so` at its root; the standalone `gemini-desktop.so` is also kept for manual installation. The host installer accepts this versioned name and installs a new version path rather than overwriting a library that is already loaded. A host restart may still be needed to activate the update. Build caches stay under `build/cache/` unless overridden. These are build targets, not claims that both platforms have been tested in a running host.
 
 For a local macOS development build:
 
@@ -112,9 +113,24 @@ Version **0.1.1-preview** and newer retrieve the verified account email from Goo
 
 Existing credential files keep their original filename and host ID. A legacy credential without an email acquires its account label on a subsequent refresh when Google user-info is available; no manual rename or fresh login is required for that upgrade. If the email lookup temporarily fails after a successful token refresh, the refreshed credential is still persisted, including any rotated refresh token, and the email lookup can be retried on a later refresh. A new login must identify a verified account before it is accepted.
 
+## Named models and upgrades
+
+After installing **0.2.0-preview**, refresh an existing Gemini Desktop credential or complete a new login. Model metadata is stored with that account's credential, and `/v1/models` exposes the discovered aliases after the host reloads it. Existing credentials keep their IDs and filenames. A failed discovery does not discard a successfully refreshed token; previous model metadata remains available for a later retry.
+
+The tested account currently exposes these native UI titles (examples, not a fixed global catalog):
+
+| Account UI title | Proxy model ID |
+| --- | --- |
+| 3.5 Flash-Lite | `gemini-desktop-3.5-flash-lite` |
+| 3.8 Flash | `gemini-desktop-3.8-flash` |
+| 3.1 Pro | `gemini-desktop-3.1-pro` |
+| 4 Argon | `gemini-desktop-4-argon` |
+
+Named aliases select account-provided native modes rather than arbitrary public API model IDs. The available list can change by account, locale, entitlement, or Google service update. An unavailable named alias returns an error rather than silently falling back to auto. Use the exact IDs returned by your server. The `gemini-desktop-` prefix also allows the companion Playground to group these names as Gemini Desktop.
+
 ## Test
 
-Use the same proxy base URL and client key already used for your CLIProxyAPI instance. First confirm that `/v1/models` includes `gemini-desktop-auto` after a valid Desktop credential has been loaded.
+Use the same proxy base URL and client key already used for your CLIProxyAPI instance. First refresh the valid Desktop credential, then confirm that `/v1/models` includes its discovered `gemini-desktop-...` named aliases and the `gemini-desktop-auto` fallback. Replace the example model below with a named alias from your server to test mode selection.
 
 ```sh
 curl "$PROXY_BASE_URL/v1/chat/completions" \
@@ -132,6 +148,8 @@ Typical errors:
 | 400 | Unsupported input or native request format rejected. |
 | 401 | Expired, missing, or revoked authentication; refresh or sign in again. |
 | 403 | Google denied the request for the account. |
+| 404 | Requested named mode is unavailable for this account. |
+| 409 | Account model metadata is missing; refresh the credential. |
 | 429 | Account quota or rate limit reached. |
 | 501 | An unimplemented API operation, such as exact token counting. |
 | 502 | Native service/transport failure, unsupported response framing, or no text response. |

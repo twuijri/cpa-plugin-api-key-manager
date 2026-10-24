@@ -3,14 +3,14 @@
 <h1>Model Playground</h1><p>أدخل مفتاح API للتطبيقات ثم اضغط «تحميل النماذج» واختر النموذج. المفتاح والمحادثة يبقيان في ذاكرة الصفحة حتى إغلاقها أو تحديثها.</p>
 <label for="key">مفتاح API للتطبيقات</label><input id="key" type="password" autocomplete="off" placeholder="Client API key" spellcheck="false" dir="ltr">
 <div class="controls"><button id="load">تحميل النماذج</button><select id="source" aria-label="مصدر النموذج"><option value="">جميع المصادر</option></select><select id="model" aria-label="النموذج"><option value="">اختر النموذج</option></select><button id="clear">محادثة جديدة</button></div>
-<p>المصدر حسب إعداد حسابات البروكسي الحالية. النماذج الجديدة تظهر «غير محدد» حتى تأكيد مصدرها.</p><p id="status" role="status"></p><div id="messages" aria-live="polite"></div><textarea id="prompt" placeholder="اكتب رسالة" aria-label="الرسالة"></textarea><div class="controls"><button id="send">إرسال</button><button id="stop" disabled>إيقاف</button></div>
+<p>المصدر حسب إعداد حسابات البروكسي الحالية. نماذج Gemini Desktop تُعرف من بادئتها المخصصة؛ غيرها يظهر «غير محدد» حتى تأكيد مصدره.</p><p id="status" role="status"></p><div id="messages" aria-live="polite"></div><textarea id="prompt" placeholder="اكتب رسالة" aria-label="الرسالة"></textarea><div class="controls"><button id="send">إرسال</button><button id="stop" disabled>إيقاف</button></div>
 <script>
 'use strict';
 const el=Object.fromEntries(['key','load','source','model','clear','status','messages','prompt','send','stop'].map(id=>[id,document.getElementById(id)]));
-// Only verified server model IDs are mapped. Never infer providers from vendor names.
+// Use the dedicated Desktop namespace; other IDs require an exact verified map.
 const modelSources={"gemini-desktop-auto":"Gemini Desktop","claude-opus-4-6-thinking":"Antigravity","claude-sonnet-4-6":"Antigravity","gemini-3.8-flash-high":"Antigravity","gemini-3-flash":"Antigravity","gemini-3.1-flash-image":"Antigravity","gpt-oss-120b-medium":"Antigravity","gemini-3.1-flash-lite":"Antigravity","gemini-3.5-flash-lite":"Antigravity","gpt-6-astra":"Codex","gpt-6-sol":"Codex","gpt-6.1-sol":"Codex","gpt-6-luna":"Codex","gpt-5.6-sol":"Codex","gpt-5.6-terra":"Codex","gpt-5.6-luna":"Codex","codex-auto-review":"Codex","gpt-image-1.5":"Codex","gpt-image-2":"Codex","gpt-image-2.5-flare":"Codex","gpt-image-2.5-sunburst":"Codex","gpt-image-2.5":"Codex"};
 let models=[],history=[],controller=null;
-function modelSource(id){return modelSources[id]||'غير محدد';}
+function modelSource(id){if(typeof id==='string'&&id.startsWith('gemini-desktop-'))return 'Gemini Desktop';return Object.hasOwn(modelSources,id)?modelSources[id]:'غير محدد';}
 function modelLabel(id){return modelSource(id)+' · '+id;}
 function renderModels(){const selected=el.model.value;el.model.replaceChildren();for(const m of models){if(el.source.value&&modelSource(m.id)!==el.source.value)continue;const option=document.createElement('option');option.value=m.id;option.textContent=modelLabel(m.id);el.model.append(option);}if(Array.from(el.model.options).some(o=>o.value===selected))el.model.value=selected;}
 el.source.onchange=renderModels;

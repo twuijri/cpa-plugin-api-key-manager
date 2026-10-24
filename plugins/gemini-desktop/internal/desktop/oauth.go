@@ -28,6 +28,7 @@ const tokenScopes = "https://www.googleapis.com/auth/assistant https://www.googl
 type Credential struct {
 	Type         string    `json:"type"`
 	Email        string    `json:"email,omitempty"`
+	Models       []NativeModel `json:"models,omitempty"`
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`

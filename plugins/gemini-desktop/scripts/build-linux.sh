@@ -31,8 +31,8 @@ GOOS=linux GOARCH="$target_arch" CGO_ENABLED=1 CC="$c_compiler" \
   "$go_bin" -C "$project_dir" build -trimpath -buildmode=c-shared \
   -o "$out_dir/gemini-desktop.so" ./cmd/plugin
 
-archive_name="gemini-desktop_0.1.2-preview_linux_$target_arch.zip"
-versioned_library="gemini-desktop-v0.1.2-preview.so"
+archive_name="gemini-desktop_0.2.0-preview_linux_$target_arch.zip"
+versioned_library="gemini-desktop-v0.2.0-preview.so"
 cp "$out_dir/gemini-desktop.so" "$out_dir/$versioned_library"
 if command -v zip >/dev/null 2>&1; then
   (cd "$out_dir" && zip -q -j "$archive_name" "$versioned_library")

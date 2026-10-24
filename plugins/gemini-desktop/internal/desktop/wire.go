@@ -89,14 +89,25 @@ func nested(data []byte, path ...int) ([][]byte, error) {
 // Field and extension numbers are from Gemini macOS 1.135.1.1291 and a live
 // ProcessQuery round trip. No Antigravity endpoint or credential is used.
 func requestFrames(prompt string) [][]byte {
+	return requestFramesSelected(prompt, NativeModel{})
+}
+
+func requestFramesSelected(prompt string, selected NativeModel) [][]byte {
 	metadata := number(4, 21) // RequestMetadata.client_type = MACOS.
 	metadata = append(metadata, number(5, 1)...)
 	metadata = append(metadata, message(6, nil)...)
 	metadata = append(metadata, message(7, []byte("en"))...)
 	metadata = append(metadata, message(2, message(1, []byte("en-US")))...)
 	initial := message(1, metadata)
-	initial = append(initial, message(1001, message(1, nil))...) // ClientGenerateFeature.template.
-	initial = append(initial, message(1004, nil)...)             // PrefetchInputFeature.
+	var template []byte
+	if selected.Category > 0 {
+		template = append(template, number(47, uint64(selected.Category))...)
+		if selected.VariantID != "" {
+			template = append(template, message(66, []byte(selected.VariantID))...)
+		}
+	}
+	initial = append(initial, message(1001, message(1, template))...) // ClientGenerateFeature.template.
+	initial = append(initial, message(1004, nil)...)                  // PrefetchInputFeature.
 	return [][]byte{
 		message(1000, initial),
 		message(1007, message(1, []byte(prompt))),

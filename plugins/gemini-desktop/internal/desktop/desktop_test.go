@@ -111,6 +111,8 @@ func newTestPlugin(t *testing.T) *Plugin {
 		t.Fatal(err)
 	}
 	p := built.Capabilities.AuthProvider.(*Plugin)
+	// Unit tests never contact Google's native account service implicitly.
+	p.discover = nil
 	t.Cleanup(p.Close)
 	return p
 }
