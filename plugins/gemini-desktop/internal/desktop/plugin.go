@@ -46,7 +46,7 @@ func Build(configYAML []byte) (pluginapi.Plugin, error) {
 	root, cancel := context.WithCancel(context.Background())
 	p := &Plugin{config: config, pending: make(map[string]Login), root: root, cancel: cancel, generate: Generate}
 	return pluginapi.Plugin{
-		Metadata: pluginapi.Metadata{Name: "Gemini Desktop Preview", Version: "0.1.0-preview", Author: "Local integration", GitHubRepository: "https://github.com/twuijri/cpa-plugin-api-key-manager", ConfigFields: []pluginapi.ConfigField{
+		Metadata: pluginapi.Metadata{Name: "Gemini Desktop Preview", Version: "0.1.1-preview", Author: "Local integration", GitHubRepository: "https://github.com/twuijri/cpa-plugin-api-key-manager", ConfigFields: []pluginapi.ConfigField{
 			{Name: "callback_port", Type: pluginapi.ConfigFieldTypeInteger, Default: 51123, Description: "Loopback OAuth callback port. Remote browser logins require forwarding or submitting the callback URL in the OAuth panel."},
 			{Name: "proxy_url", Type: pluginapi.ConfigFieldTypeString, Default: "", Description: "Upstream HTTP CONNECT or SOCKS proxy for native gRPC; inherits proxy-url when empty."},
 		}},

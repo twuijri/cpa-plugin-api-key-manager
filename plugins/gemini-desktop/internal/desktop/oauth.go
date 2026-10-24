@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"strings"
 	"time"
@@ -20,11 +21,13 @@ const Provider = "gemini-desktop"
 const Model = "gemini-desktop-auto"
 const authEndpoint = "https://accounts.google.com/o/oauth2/auth"
 const tokenEndpoint = "https://www.googleapis.com/oauth2/v4/token"
+const userinfoEndpoint = "https://www.googleapis.com/oauth2/v2/userinfo"
 const flexibleScope = "https://www.googleapis.com/auth/flexible-api"
 const tokenScopes = "https://www.googleapis.com/auth/assistant https://www.googleapis.com/auth/gemini https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gdm-genesis-janus.firstparty"
 
 type Credential struct {
 	Type         string    `json:"type"`
+	Email        string    `json:"email,omitempty"`
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
@@ -88,14 +91,56 @@ func Exchange(ctx context.Context, client pluginapi.HostHTTPClient, l Login, cod
 	}
 	// The native authorization grants flexible scopes. Mint a service-scoped token
 	// before model calls, using the same native refresh grant.
-	return Refresh(ctx, client, c)
+	c, err = Refresh(ctx, client, c)
+	if err != nil {
+		return Credential{}, err
+	}
+	if c.Email == "" {
+		return Credential{}, failure(502, "Could not identify the Google account for this new login")
+	}
+	return c, nil
 }
 
 func Refresh(ctx context.Context, client pluginapi.HostHTTPClient, c Credential) (Credential, error) {
 	if c.RefreshToken == "" {
 		return Credential{}, failure(401, "Gemini refresh token is missing")
 	}
-	return token(ctx, client, url.Values{"grant_type": {"refresh_token"}, "refresh_token": {c.RefreshToken}, "scope": {tokenScopes}}, c)
+	c, err := token(ctx, client, url.Values{"grant_type": {"refresh_token"}, "refresh_token": {c.RefreshToken}, "scope": {tokenScopes}}, c)
+	if err != nil {
+		return Credential{}, err
+	}
+	if c.Email == "" {
+		identified, errIdentify := identify(ctx, client, c)
+		if errIdentify == nil {
+			return identified, nil
+		}
+		// Account labeling must not discard a successful token refresh. In
+		// particular, a rotated refresh token must reach the host for persistence.
+		// Legacy credentials can acquire the verified email on a later refresh.
+	}
+	return c, nil
+}
+
+func identify(ctx context.Context, client pluginapi.HostHTTPClient, c Credential) (Credential, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	response, err := client.Do(ctx, pluginapi.HTTPRequest{Method: http.MethodGet, URL: userinfoEndpoint, Headers: http.Header{"Authorization": {"Bearer " + c.AccessToken}}})
+	if err != nil || response.StatusCode != http.StatusOK {
+		return Credential{}, failure(502, "Could not retrieve the Google account email")
+	}
+	var profile struct {
+		Email    string `json:"email"`
+		Verified bool   `json:"verified_email"`
+	}
+	if len(response.Body) > 64<<10 || json.Unmarshal(response.Body, &profile) != nil {
+		return Credential{}, failure(502, "Invalid Google account profile")
+	}
+	address, err := mail.ParseAddress(profile.Email)
+	if err != nil || address.Address != profile.Email || !profile.Verified || strings.ContainsAny(profile.Email, "/\\\r\n\x00") {
+		return Credential{}, failure(502, "Google did not return a verified account email")
+	}
+	c.Email = profile.Email
+	return c, nil
 }
 
 func token(ctx context.Context, client pluginapi.HostHTTPClient, values url.Values, old Credential) (Credential, error) {
@@ -165,14 +210,25 @@ func Auth(c Credential) (pluginapi.AuthData, error) {
 	if c.Type != Provider || c.RefreshToken == "" {
 		return pluginapi.AuthData{}, failure(400, "Invalid Gemini Desktop credential")
 	}
+	if c.Email != "" {
+		address, e := mail.ParseAddress(c.Email)
+		if e != nil || address.Address != c.Email || strings.ContainsAny(c.Email, "/\\\r\n\x00") {
+			return pluginapi.AuthData{}, failure(400, "Invalid Gemini account email")
+		}
+	}
 	raw, err := json.Marshal(c)
 	if err != nil {
 		return pluginapi.AuthData{}, err
 	}
 	hash := sha256.Sum256([]byte(c.RefreshToken))
 	name := Provider + "-" + hex.EncodeToString(hash[:8]) + ".json"
+	label := "Gemini Desktop"
+	if c.Email != "" {
+		label = c.Email
+		name = Provider + "-" + c.Email + ".json"
+	}
 	next := c.ExpiresAt.Add(-5 * time.Minute)
-	return pluginapi.AuthData{Provider: Provider, ID: name, FileName: name, Label: "Gemini Desktop", ProxyURL: c.ProxyURL, StorageJSON: raw, Metadata: map[string]any{"type": Provider, "access_token": c.AccessToken, "refresh_token": c.RefreshToken, "expired": c.ExpiresAt.Format(time.RFC3339)}, NextRefreshAfter: next}, nil
+	return pluginapi.AuthData{Provider: Provider, ID: name, FileName: name, Label: label, ProxyURL: c.ProxyURL, StorageJSON: raw, Metadata: map[string]any{"type": Provider, "email": c.Email, "access_token": c.AccessToken, "refresh_token": c.RefreshToken, "expired": c.ExpiresAt.Format(time.RFC3339)}, NextRefreshAfter: next}, nil
 }
 
 func errorf(status int, format string, args ...any) error {

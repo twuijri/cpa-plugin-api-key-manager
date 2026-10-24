@@ -47,6 +47,12 @@ func TestNativeOAuthPKCEAndRefresh(t *testing.T) {
 	var calls int
 	client := fakeHTTP{func(r pluginapi.HTTPRequest) (pluginapi.HTTPResponse, error) {
 		calls++
+		if r.URL == userinfoEndpoint {
+			if r.Headers.Get("Authorization") != "Bearer scoped" {
+				t.Fatal("userinfo must use current scoped token")
+			}
+			return pluginapi.HTTPResponse{StatusCode: 200, Body: []byte(`{"email":"account@example.com","verified_email":true}`)}, nil
+		}
 		if r.URL != tokenEndpoint || r.Method != "POST" {
 			t.Fatal("unexpected OAuth destination")
 		}
@@ -72,7 +78,7 @@ func TestNativeOAuthPKCEAndRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.AccessToken != "scoped" || c.RefreshToken != "refresh-test" || calls != 2 {
+	if c.AccessToken != "scoped" || c.RefreshToken != "refresh-test" || calls != 3 {
 		t.Fatal("refresh token was lost or native refresh failed")
 	}
 	if time.Until(c.ExpiresAt) < 59*time.Minute {
@@ -123,8 +129,11 @@ func TestOAuthCallbackSingleUseAndIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	var calls atomic.Int32
-	client := fakeHTTP{func(pluginapi.HTTPRequest) (pluginapi.HTTPResponse, error) {
+	client := fakeHTTP{func(r pluginapi.HTTPRequest) (pluginapi.HTTPResponse, error) {
 		calls.Add(1)
+		if r.URL == userinfoEndpoint {
+			return pluginapi.HTTPResponse{StatusCode: 200, Body: []byte(`{"email":"account@example.com","verified_email":true}`)}, nil
+		}
 		return pluginapi.HTTPResponse{StatusCode: 200, Body: []byte(`{"access_token":"token","refresh_token":"refresh-test","expires_in":3600}`)}, nil
 	}}
 	req := pluginapi.AuthLoginPollRequest{State: start.State, Host: pluginapi.HostConfigSummary{AuthDir: dir}, HTTPClient: client}
@@ -136,7 +145,7 @@ func TestOAuthCallbackSingleUseAndIsolation(t *testing.T) {
 		t.Fatal("callback was not consumed")
 	}
 	resp, err = p.PollLogin(ctx, req)
-	if err != nil || resp.Status != pluginapi.AuthLoginStatusError || calls.Load() != 2 {
+	if err != nil || resp.Status != pluginapi.AuthLoginStatusError || calls.Load() != 3 {
 		t.Fatal("OAuth callback replay reached token service")
 	}
 	if _, err = p.PollLogin(ctx, pluginapi.AuthLoginPollRequest{State: "../../outside"}); err == nil {

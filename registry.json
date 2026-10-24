@@ -32,7 +32,7 @@
       "name": "Gemini Desktop Preview",
       "description": "Native Gemini Desktop account provider for text Chat Completions and streaming. Separate from Antigravity and Gemini CLI. Google chooses the default model via gemini-desktop-auto. Experimental: no tools, images, attachments or exact token accounting. Tested locally; requires CPA 8.0.41 and Linux amd64 glibc.",
       "author": "Abdulaziz",
-      "version": "0.1.0-preview",
+      "version": "0.1.1-preview",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/plugins/gemini-desktop/README_AR.md",
       "license": "MIT",
@@ -49,9 +49,37 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/gemini-desktop/0.1.0-preview/gemini-desktop_0.1.0-preview_linux_amd64.zip",
-            "sha256": "2e438b003ac11dc097e5a338f8c74dd187a7a38e2aec3d9110373c35935082b5",
-            "size": 8808837
+            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/gemini-desktop/0.1.1-preview/gemini-desktop_0.1.1-preview_linux_amd64.zip",
+            "sha256": "73d6eb758fb1ea1b70b450f5e2cba01d505d54b51a866abfb141a2ded38fdd92",
+            "size": 8838504
+          }
+        ]
+      }
+    },
+    {
+      "id": "model-playground",
+      "name": "Model Playground — شات التجربة",
+      "description": "Arabic text chat and model picker for this proxy. Manual client API key, memory-only conversations, SSE streaming. Independently hardened fork of hex-ci/cpa-plugin-model-playground; no automatic management-key or API-key-list reading.",
+      "author": "hex-ci / Abdulaziz local variant",
+      "version": "0.3.0-local.1",
+      "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
+      "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/plugins/model-playground/README.md",
+      "license": "MIT",
+      "tags": [
+        "Management",
+        "Chat",
+        "Playground",
+        "Streaming"
+      ],
+      "install": {
+        "type": "direct",
+        "artifacts": [
+          {
+            "goos": "linux",
+            "goarch": "amd64",
+            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/model-playground/0.3.0-local.1/model-playground-v0.3.0-local.1-linux-amd64.zip",
+            "sha256": "529ec46a91184acc823ec5d9edf4f0f1970cf349320a7a9fa4d729675f8aa85b",
+            "size": 3318697
           }
         ]
       }

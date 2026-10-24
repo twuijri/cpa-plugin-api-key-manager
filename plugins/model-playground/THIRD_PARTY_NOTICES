@@ -1,0 +1,16 @@
+Model Playground local hardened variant
+
+This package is a modified fork of hex-ci/cpa-plugin-model-playground:
+https://github.com/hex-ci/cpa-plugin-model-playground
+Upstream revision: 72469d5fd0d01cff6682de092cd76f1252f34898
+The upstream MIT license and copyright notice are preserved in LICENSE.
+
+Local modifications: Arabic minimal model chooser and streaming chat interface;
+manual client API key stored only in page memory; plain text response rendering;
+removed management-session and API-key discovery, arbitrary-origin server proxy,
+browser persistence, and Markdown renderer; migrated SDK dependency to CLIProxyAPI
+v8.0.41. No bundled marked code is used or included in the source release.
+
+CLIProxyAPI SDK v8.0.41:
+https://github.com/router-for-me/CLIProxyAPI
+License: MIT. SDK code is linked into the compiled plugin through Go modules.
