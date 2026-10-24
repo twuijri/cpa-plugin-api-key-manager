@@ -61,7 +61,7 @@
       "name": "Model Playground — شات التجربة",
       "description": "Arabic text chat and model picker for this proxy. Manual client API key, memory-only conversations, SSE streaming. Independently hardened fork of hex-ci/cpa-plugin-model-playground; no automatic management-key or API-key-list reading.",
       "author": "hex-ci / Abdulaziz local variant",
-      "version": "0.3.0-local.1",
+      "version": "0.3.0-local.2",
       "repository": "https://github.com/twuijri/cpa-plugin-api-key-manager",
       "homepage": "https://github.com/twuijri/cpa-plugin-api-key-manager/blob/main/plugins/model-playground/README.md",
       "license": "MIT",
@@ -77,9 +77,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/model-playground/0.3.0-local.1/model-playground-v0.3.0-local.1-linux-amd64.zip",
-            "sha256": "529ec46a91184acc823ec5d9edf4f0f1970cf349320a7a9fa4d729675f8aa85b",
-            "size": 3318697
+            "url": "https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/downloads/model-playground/0.3.0-local.2/model-playground-v0.3.0-local.2-linux-amd64.zip",
+            "sha256": "327ea6fcc8579d5de9097866edf712f0b170f9c489f66172de3c77c7185f6749",
+            "size": 3319163
           }
         ]
       }

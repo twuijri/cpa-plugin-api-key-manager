@@ -10,7 +10,7 @@ https://raw.githubusercontent.com/twuijri/cpa-plugin-api-key-manager/main/regist
 | --- | --- | --- | --- | --- |
 | API Key Manager — مفتاح | 0.1.5 | إدارة مفاتيح العملاء والميزانيات والمسارات | Linux amd64، glibc ≥ 2.34 | [مفتاح](MIFTAH.md) · [التثبيت](INSTALL.md) |
 | Gemini Desktop | 0.1.2-preview | ربط حساب Gemini Desktop بمحادثات نصية وبث الرد | Linux amd64، glibc ≥ 2.17، CPA 8.0.41 | [الدليل](plugins/gemini-desktop/README_AR.md) |
-| Model Playground — شات التجربة | 0.3.0-local.1 | تجربة موديلات البروكسي بمحادثات نصية وبث | Linux amd64، CPA 8.0.41 | [الدليل](plugins/model-playground/README.md) |
+| Model Playground — شات التجربة | 0.3.0-local.2 | تجربة موديلات البروكسي بمحادثات نصية وبث | Linux amd64، CPA 8.0.41 | [الدليل](plugins/model-playground/README.md) |
 
 Gemini Desktop إصدار تجريبي، وموديله `gemini-desktop-auto` يستخدم الموديل الافتراضي الذي تختاره Google للحساب. لا يدعم الصور أو استدعاء الأدوات في هذا الإصدار. اجتاز اختبارات محلية للمحادثات والبث؛ التحقق على السيرفر موضح عند إتمامه، وليس شرطًا مفترضًا لمجرد النشر.
 
